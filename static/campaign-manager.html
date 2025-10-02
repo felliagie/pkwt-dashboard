@@ -1,0 +1,103 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campaign Manager - PKWT Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/campaign-manager.css">
+</head>
+<body class="bg-gray-50">
+    <!-- Navbar -->
+    <nav style="background-color: #FFFFFF; border-bottom: 1px solid #E5E5E5;">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-xl font-bold" style="color: #1A1A1A;">JMax</span>
+                </div>
+                <div class="flex items-center space-x-8">
+                    <a href="/" class="text-gray-600 hover:text-purple-600 font-medium transition-colors">Dashboard</a>
+                    <a href="/campaign" class="text-gray-600 hover:text-purple-600 font-medium transition-colors">Campaign</a>
+                    <a href="/campaign-manager" class="text-purple-600 font-semibold px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">Campaign Manager</a>
+                    <button onclick="logout()" class="text-gray-600 hover:text-purple-600 transition-colors p-2" title="Logout">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-900">📊 Campaign Manager</h1>
+            <p class="mt-2 text-gray-600 text-lg">Manage and monitor your PKWT campaigns</p>
+        </div>
+
+        <!-- Campaign Cards Container -->
+        <div id="campaigns-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Campaign cards will be populated by JavaScript -->
+        </div>
+
+        <!-- Pagination -->
+        <div id="pagination-container" class="mt-8 flex justify-center">
+            <!-- Pagination will be populated by JavaScript -->
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            <p class="mt-2 text-gray-600">Loading campaigns...</p>
+        </div>
+    </main>
+
+    <!-- Campaign Details Modal -->
+    <div id="campaign-details-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-10 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-medium text-gray-900" id="modal-campaign-title">Campaign Details</h3>
+                    <button id="close-campaign-details" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Contract List Section -->
+                <div class="mb-8">
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4">Contract List</h4>
+                    <div class="bg-gray-50 p-4 rounded-lg max-h-96 overflow-y-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50 sticky top-0">
+                                <tr id="modal-contract-table-header">
+                                    <!-- Headers will be populated by JavaScript -->
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="modal-contract-table-body">
+                                <!-- Data will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+
+                <!-- Contract Template Section -->
+                <div>
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4">Contract Template</h4>
+                    <div class="bg-gray-50 p-4 rounded-lg max-h-96 overflow-auto border">
+                        <div id="modal-contract-template-content" class="contract-content-container">
+                            <!-- Contract HTML will be populated by JavaScript -->
+                        </div>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/campaign-manager.js"></script>
+</body>
+</html>

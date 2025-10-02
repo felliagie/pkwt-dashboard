@@ -1,0 +1,26 @@
+/* Campaign Detail Page Styles */
+
+/* Contract content container */
+.contract-content-container {
+    max-width: 100%;
+    overflow-x: auto;
+}
+
+/* Preview button styling */
+.preview-button {
+    background: #8B7FC7;
+    border: none;
+    color: white;
+    font-weight: 600;
+    padding: 0.5rem 1rem;
+    border-radius: 0.5rem;
+    transition: all 0.2s;
+    cursor: pointer;
+    box-shadow: 0 1px 3px rgba(0, 0, 0, 0.1);
+}
+
+.preview-button:hover {
+    background: #7A6FB6;
+    transform: translateY(-1px);
+    box-shadow: 0 4px 6px rgba(0, 0, 0, 0.1);
+}

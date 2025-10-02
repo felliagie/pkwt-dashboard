@@ -1,0 +1,104 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Campaign Details - PKWT Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/campaign-detail.css">
+</head>
+<body class="bg-gray-50">
+    <!-- Navbar -->
+    <nav style="background-color: #FFFFFF; border-bottom: 1px solid #E5E5E5;">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-xl font-bold" style="color: #1A1A1A;">JMax</span>
+                </div>
+                <div class="flex items-center space-x-8">
+                    <a href="/" class="text-gray-600 hover:text-purple-600 font-medium transition-colors">Dashboard</a>
+                    <a href="/campaign" class="text-gray-600 hover:text-purple-600 font-medium transition-colors">Campaign</a>
+                    <a href="/campaign-manager" class="text-purple-600 font-semibold px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">Campaign Manager</a>
+                    <button onclick="logout()" class="text-gray-600 hover:text-purple-600 transition-colors p-2" title="Logout">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <!-- Back Button -->
+        <div class="mb-4">
+            <button onclick="window.location.href='/campaign-manager'" class="text-purple-600 font-medium flex items-center hover:underline">
+                <svg class="w-5 h-5 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                </svg>
+                Back to Campaign Manager
+            </button>
+        </div>
+
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-900" id="campaign-title">📄 Campaign Details</h1>
+            <p class="mt-2 text-gray-600 text-lg" id="campaign-subtitle">Loading campaign information...</p>
+        </div>
+
+        <!-- Contracts Table -->
+        <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
+            <div class="px-4 py-5 sm:p-6">
+                <h3 class="text-lg leading-6 font-semibold mb-4 text-gray-900">📋 Contract List</h3>
+                <div class="overflow-hidden">
+                    <div class="max-h-96 overflow-y-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-100 sticky top-0">
+                                <tr id="table-header">
+                                    <!-- Headers will be populated by JavaScript -->
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="contracts-table-body">
+                                <!-- Data will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            <p class="mt-2 text-gray-600">Loading contracts...</p>
+        </div>
+    </main>
+
+    <!-- Contract Preview Modal -->
+    <div id="contract-preview-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-10 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white mb-10">
+            <div class="mt-3">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-medium text-gray-900">Contract Preview</h3>
+                    <button id="close-preview-modal" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Contract Template Preview -->
+                <div class="bg-gray-50 p-4 rounded-lg border">
+                    <div id="contract-template-content" class="contract-content-container">
+                        <!-- Contract HTML will be populated by JavaScript -->
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script src="/static/js/campaign-detail.js"></script>
+</body>
+</html>

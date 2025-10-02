@@ -1554,7 +1554,7 @@ async def send_email_api(contract_id: int = Form(...)):
             },
             json={
                 'From': 'hr@jmaxindo.id',
-                'To': 'felliayp@gmail.com',
+                'To': 'Lisa@jmaxindo.com',
                 'Subject': 'Selamat Bergabung di PT JMAX Indonesia',
                 'HtmlBody': email_data["html"],
                 'TextBody': email_data["text"],
@@ -1622,7 +1622,7 @@ async def bulk_send_email(request: BulkEmailRequest):
                     },
                     json={
                         'From': 'hr@jmaxindo.id',
-                        'To': 'felliayp@gmail.com',
+                        'To': 'Lisa@jmaxindo.com',
                         'Subject': 'Selamat Bergabung di PT JMAX Indonesia',
                         'HtmlBody': email_data["html"],
                         'TextBody': email_data["text"],

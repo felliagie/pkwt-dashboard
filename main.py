@@ -28,7 +28,7 @@ app = FastAPI()
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
 # Database connection
-DB_URL = "postgresql://neondb_owner:npg_3uDE5TZcNksJ@ep-plain-sky-a11d4k0g-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+DB_URL = "postgresql://postgres.uowdeqqbkuoyxcfxyobv:Ifaassegaf1!@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres"
 
 def get_db_connection():
     return psycopg2.connect(DB_URL)
@@ -1362,8 +1362,6 @@ async def sign_contract(signature: UploadFile = File(...), contract_id: int = Fo
 
 def get_email_body(contract_id):
     """Generate email body for a contract"""
-    import hashlib
-
     # Indonesian month names
     INDONESIAN_MONTHS = {
         1: 'Januari', 2: 'Februari', 3: 'Maret', 4: 'April',
@@ -1375,7 +1373,7 @@ def get_email_body(contract_id):
     cursor = conn.cursor()
 
     cursor.execute("""
-        SELECT name, birthplace, birthdate, nik, location, job_description, contract_num_detail
+        SELECT name, birthplace, birthdate, nik, location, job_description, contract_num_detail_md5
         FROM contract_pkwt.list_contract
         WHERE contract_id = %s
     """, (contract_id,))
@@ -1387,7 +1385,7 @@ def get_email_body(contract_id):
     if not contract:
         return None
 
-    name, birthplace, birthdate, nik, location, job_description, contract_num_detail = contract
+    name, birthplace, birthdate, nik, location, job_description, contract_num_detail_md5 = contract
 
     # Format birthdate with Indonesian month
     if birthdate:
@@ -1397,9 +1395,6 @@ def get_email_body(contract_id):
         birthdate_str = f'{day} {month} {year}'
     else:
         birthdate_str = '-'
-
-    # Hash contract_num_detail with MD5
-    contract_hash = hashlib.md5(contract_num_detail.encode()).hexdigest()
 
     # Build HTML email body
     html_body = f"""<!DOCTYPE html>
@@ -1467,7 +1462,7 @@ def get_email_body(contract_id):
     </div>
 
     <p>Untuk melanjutkan proses administrasi, anda harus melengkapi dokumen melalui link:<br>
-    <a href="https://hr.jmaxindo.id/registrasi/{contract_hash}">https://hr.jmaxindo.id/registrasi/{contract_hash}</a></p>
+    <a href="https://pkwt.jmaxindo.id/registrasi/{contract_num_detail_md5}">https://pkwt.jmaxindo.id/registrasi/{contract_num_detail_md5}</a></p>
 
     <p>Kami percaya bahwa semangat, keahlian, dan dedikasi Anda akan membawa nilai tambah bagi tim dan perusahaan.</p>
 
@@ -1501,7 +1496,7 @@ Berikut beberapa informasi awal yang perlu Anda ketahui:
 🔹 Jabatan / Posisi       : {job_description}
 
 Untuk melanjutkan proses administrasi, anda harus melengkapi dokumen melalui link:
-https://hr.jmaxindo.id/registrasi/{contract_hash}
+https://pkwt.jmaxindo.id/registrasi/{contract_num_detail_md5}
 
 Kami percaya bahwa semangat, keahlian, dan dedikasi Anda akan membawa nilai tambah bagi tim dan perusahaan.
 
@@ -1539,6 +1534,24 @@ async def email_preview(contract_id: int = Form(...)):
 @app.post("/api/send-email")
 async def send_email_api(contract_id: int = Form(...)):
     try:
+        # Get employee email from list_contract
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT email FROM contract_pkwt.list_contract
+            WHERE contract_id = %s
+        """, (contract_id,))
+
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not result or not result[0]:
+            return JSONResponse(status_code=404, content={"error": "Employee email not found"})
+
+        employee_email = result[0]
+
         email_data = get_email_body(contract_id)
 
         if not email_data:
@@ -1554,7 +1567,7 @@ async def send_email_api(contract_id: int = Form(...)):
             },
             json={
                 'From': 'hr@jmaxindo.id',
-                'To': 'Lisa@jmaxindo.com',
+                'To': employee_email,
                 'Subject': 'Selamat Bergabung di PT JMAX Indonesia',
                 'HtmlBody': email_data["html"],
                 'TextBody': email_data["text"],
@@ -1603,6 +1616,28 @@ async def bulk_send_email(request: BulkEmailRequest):
 
         for contract_id in request.contract_ids:
             try:
+                # Get employee email from list_contract
+                conn = get_db_connection()
+                cursor = conn.cursor()
+
+                cursor.execute("""
+                    SELECT email FROM contract_pkwt.list_contract
+                    WHERE contract_id = %s
+                """, (contract_id,))
+
+                result = cursor.fetchone()
+                cursor.close()
+                conn.close()
+
+                if not result or not result[0]:
+                    failed.append({
+                        "contract_id": contract_id,
+                        "error": "Employee email not found"
+                    })
+                    continue
+
+                employee_email = result[0]
+
                 email_data = get_email_body(contract_id)
 
                 if not email_data:
@@ -1622,7 +1657,7 @@ async def bulk_send_email(request: BulkEmailRequest):
                     },
                     json={
                         'From': 'hr@jmaxindo.id',
-                        'To': 'Lisa@jmaxindo.com',
+                        'To': employee_email,
                         'Subject': 'Selamat Bergabung di PT JMAX Indonesia',
                         'HtmlBody': email_data["html"],
                         'TextBody': email_data["text"],

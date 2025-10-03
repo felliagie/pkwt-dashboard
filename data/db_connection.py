@@ -3,7 +3,7 @@ from typing import Optional
 import os
 from contextlib import contextmanager
 
-DATABASE_URL = "postgresql://neondb_owner:npg_3uDE5TZcNksJ@ep-plain-sky-a11d4k0g-pooler.ap-southeast-1.aws.neon.tech/neondb?sslmode=require&channel_binding=require"
+DATABASE_URL = "postgresql://postgres.uowdeqqbkuoyxcfxyobv:Ifaassegaf1!@aws-1-ap-southeast-1.pooler.supabase.com:5432/postgres"
 
 def get_connection():
     """Create and return a database connection"""

@@ -5,6 +5,10 @@ import bcrypt
 def create_schema_and_tables():
     """Create schema and tables for PKWT contracts"""
 
+    drop_schema_sql = """
+    DROP SCHEMA IF EXISTS contract_pkwt CASCADE;
+    """
+
     create_schema_sql = """
     CREATE SCHEMA IF NOT EXISTS contract_pkwt;
     """
@@ -28,6 +32,7 @@ def create_schema_and_tables():
         contract_id SERIAL PRIMARY KEY,
         campaign_id INTEGER REFERENCES contract_pkwt.campaign(campaign_id),
         contract_num_detail VARCHAR(255) UNIQUE NOT NULL,
+        contract_num_detail_md5 VARCHAR(32),
         NIP VARCHAR(10),
         name VARCHAR(100) NOT NULL,
         job_description VARCHAR(100) NOT NULL,
@@ -103,6 +108,9 @@ def create_schema_and_tables():
     try:
         with get_db_connection() as conn:
             cursor = conn.cursor()
+
+            cursor.execute(drop_schema_sql)
+            print("Existing schema dropped successfully")
 
             cursor.execute(create_schema_sql)
             print("Schema created successfully")

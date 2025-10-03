@@ -1534,24 +1534,6 @@ async def email_preview(contract_id: int = Form(...)):
 @app.post("/api/send-email")
 async def send_email_api(contract_id: int = Form(...)):
     try:
-        # Get employee email from list_contract
-        conn = get_db_connection()
-        cursor = conn.cursor()
-
-        cursor.execute("""
-            SELECT email FROM contract_pkwt.list_contract
-            WHERE contract_id = %s
-        """, (contract_id,))
-
-        result = cursor.fetchone()
-        cursor.close()
-        conn.close()
-
-        if not result or not result[0]:
-            return JSONResponse(status_code=404, content={"error": "Employee email not found"})
-
-        employee_email = result[0]
-
         email_data = get_email_body(contract_id)
 
         if not email_data:
@@ -1567,7 +1549,7 @@ async def send_email_api(contract_id: int = Form(...)):
             },
             json={
                 'From': 'hr@jmaxindo.id',
-                'To': employee_email,
+                'To': 'felliayp@gmail.com',
                 'Subject': 'Selamat Bergabung di PT JMAX Indonesia',
                 'HtmlBody': email_data["html"],
                 'TextBody': email_data["text"],
@@ -1616,28 +1598,6 @@ async def bulk_send_email(request: BulkEmailRequest):
 
         for contract_id in request.contract_ids:
             try:
-                # Get employee email from list_contract
-                conn = get_db_connection()
-                cursor = conn.cursor()
-
-                cursor.execute("""
-                    SELECT email FROM contract_pkwt.list_contract
-                    WHERE contract_id = %s
-                """, (contract_id,))
-
-                result = cursor.fetchone()
-                cursor.close()
-                conn.close()
-
-                if not result or not result[0]:
-                    failed.append({
-                        "contract_id": contract_id,
-                        "error": "Employee email not found"
-                    })
-                    continue
-
-                employee_email = result[0]
-
                 email_data = get_email_body(contract_id)
 
                 if not email_data:
@@ -1657,7 +1617,7 @@ async def bulk_send_email(request: BulkEmailRequest):
                     },
                     json={
                         'From': 'hr@jmaxindo.id',
-                        'To': employee_email,
+                        'To': 'felliayp@gmail.com',
                         'Subject': 'Selamat Bergabung di PT JMAX Indonesia',
                         'HtmlBody': email_data["html"],
                         'TextBody': email_data["text"],

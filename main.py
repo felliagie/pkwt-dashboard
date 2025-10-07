@@ -511,11 +511,9 @@ async def upload_employees(file: UploadFile = File(...), campaign_id: int = Form
                 return None
             try:
                 if isinstance(date_val, str):
-                    # Explicitly parse DD.MM.YY or DD.MM.YYYY format
-                    return pd.to_datetime(date_val, format='%d.%m.%Y').date()
+                    return pd.to_datetime(date_val, dayfirst=True).date()
                 else:
-                    # If it's already a datetime object from Excel, use it directly
-                    return pd.to_datetime(date_val).date()
+                    return pd.to_datetime(date_val, dayfirst=True).date()
             except:
                 return None
 

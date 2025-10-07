@@ -1792,12 +1792,12 @@ async def send_reminders(request: ReminderRequest):
                     continue
 
                 contract_hash = result[0]
-                registration_url = f"https://pkwt.jmaxindo.id/registrasi/{contract_hash}"
+                login_url = f"https://pkwt.jmaxindo.id/{contract_hash}"
 
                 reminder_text = f"""Kami mengingatkan bahwa proses penandatanganan kontrak kerja waktu tertentu (PKWT) dijadwalkan untuk dilakukan hari ini 7 Oktober 2025, melalui platform digital.
 
 Mohon agar Saudara/i segera mengakses lampiran PKWT berikut untuk melakukan penandatanganan.
-{registration_url}
+{login_url}
 
 Batas waktu penandatanganan adalah hari ini pukul 20:00.
 

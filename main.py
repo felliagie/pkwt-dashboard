@@ -1804,7 +1804,7 @@ PT JMAX Indonesia
                         'Subject': f'Reminder: Penandatanganan PKWT - {name}',
                         'HtmlBody': html_body,
                         'TextBody': reminder_text,
-                        'MessageStream': 'broadcast'
+                        'MessageStream': 'outbound'
                     }
                 )
 

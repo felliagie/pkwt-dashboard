@@ -1762,6 +1762,73 @@ async def get_unsigned_active_contracts():
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+class ReminderRequest(BaseModel):
+    uids: List[str]
+    names: List[str]
+
+@app.post("/api/send-reminders")
+async def send_reminders(request: ReminderRequest):
+    """Send reminder emails to selected contracts"""
+    try:
+        success_count = 0
+        failed_count = 0
+
+        reminder_text = """Kami mengingatkan bahwa proses penandatanganan kontrak kerja waktu tertentu (PKWT) dijadwalkan untuk dilakukan hari ini 7 Oktober 2025, melalui platform digital.
+
+Mohon agar Saudara/i segera mengakses lampiran PKWT berikut untuk melakukan penandatanganan.
+
+Batas waktu penandatanganan adalah hari ini pukul 20:00.
+
+Terima kasih atas perhatian dan kerja samanya.
+
+Salam hangat,
+Tajunissa Legisa W
+General Manager
+PT JMAX Indonesia
+📧 Lisa@jmaxindo.com"""
+
+        html_body = f"<p>{reminder_text.replace(chr(10), '<br>')}</p>"
+
+        for uid, name in zip(request.uids, request.names):
+            try:
+                postmark_response = requests.post(
+                    'https://api.postmarkapp.com/email',
+                    headers={
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-Postmark-Server-Token': 'e3e7715d-2a61-4187-b79e-6c27733c9cda'
+                    },
+                    json={
+                        'From': 'hr@jmaxindo.id',
+                        'To': 'teguh.hardiansah@proton.me',
+                        'Subject': f'Reminder: Penandatanganan PKWT - {name}',
+                        'HtmlBody': html_body,
+                        'TextBody': reminder_text,
+                        'MessageStream': 'broadcast'
+                    }
+                )
+
+                if postmark_response.status_code == 200:
+                    success_count += 1
+                else:
+                    failed_count += 1
+
+            except Exception as e:
+                print(f"Error sending reminder for {name}: {str(e)}")
+                failed_count += 1
+
+        return JSONResponse(content={
+            "success_count": success_count,
+            "failed_count": failed_count
+        })
+
+    except Exception as e:
+        import traceback
+        print(f"Error in send reminders: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)

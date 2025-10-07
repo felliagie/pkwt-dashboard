@@ -1765,6 +1765,7 @@ async def get_unsigned_active_contracts():
 class ReminderRequest(BaseModel):
     uids: List[str]
     names: List[str]
+    emails: List[str]
 
 @app.post("/api/send-reminders")
 async def send_reminders(request: ReminderRequest):
@@ -1793,8 +1794,13 @@ PT JMAX Indonesia
 
         html_body = f"<p>{reminder_text.replace(chr(10), '<br>')}</p>"
 
-        for uid, name in zip(request.uids, request.names):
+        for uid, name, email in zip(request.uids, request.names, request.emails):
             try:
+                if not email:
+                    failed_count += 1
+                    print(f"No email for {name}")
+                    continue
+
                 postmark_response = requests.post(
                     'https://api.postmarkapp.com/email',
                     headers={
@@ -1804,7 +1810,7 @@ PT JMAX Indonesia
                     },
                     json={
                         'From': 'hr@jmaxindo.id',
-                        'To': 'felliayp@gmail.com',
+                        'To': email,
                         'Subject': f'Reminder: Penandatanganan PKWT - {name}',
                         'HtmlBody': html_body,
                         'TextBody': reminder_text,

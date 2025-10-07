@@ -664,10 +664,12 @@ async function sendReminder() {
 
     const uids = [];
     const names = [];
+    const emails = [];
 
     checkboxes.forEach(cb => {
         uids.push(cb.dataset.uid);
         names.push(cb.dataset.name);
+        emails.push(cb.dataset.email);
     });
 
     try {
@@ -678,7 +680,8 @@ async function sendReminder() {
             },
             body: JSON.stringify({
                 uids: uids,
-                names: names
+                names: names,
+                emails: emails
             })
         });
 
@@ -688,7 +691,7 @@ async function sendReminder() {
         sendBtn.textContent = '📧 Send Reminder to Selected';
 
         if (result.success_count > 0) {
-            showToast(`Sent ${result.success_count} reminder(s) successfully to teguh.hardiansah@proton.me!`, 'success');
+            showToast(`Sent ${result.success_count} reminder(s) successfully!`, 'success');
             document.getElementById('reminder-modal').classList.add('hidden');
         }
 

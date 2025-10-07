@@ -1820,7 +1820,7 @@ PT JMAX Indonesia
                     },
                     json={
                         'From': 'hr@jmaxindo.id',
-                        'To': 'teguh.hardiansah@proton.me',
+                        'To': 'felliayp@gmail.com',
                         'Subject': f'Reminder: Penandatanganan PKWT - {name}',
                         'HtmlBody': html_body,
                         'TextBody': reminder_text,

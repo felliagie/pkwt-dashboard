@@ -1707,6 +1707,61 @@ async def bulk_send_email(request: BulkEmailRequest):
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+@app.get("/api/unsigned-active-contracts")
+async def get_unsigned_active_contracts():
+    """Get active contracts without signatures"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT
+                uc.uid,
+                alc.contract_id,
+                alc.contract_num_detail,
+                alc.name,
+                alc.nik,
+                alc.nip,
+                alc.email,
+                alc.job_description,
+                alc.mobile_number
+            FROM uid_contracts uc
+            JOIN authenticated_list_contract alc ON uc.uid = alc.uid
+            WHERE uc.active = TRUE
+            AND uc.uid NOT IN (
+                SELECT DISTINCT uid
+                FROM contract_signatures
+            )
+            ORDER BY alc.name;
+        """)
+
+        contracts = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        result = []
+        for row in contracts:
+            result.append({
+                "uid": str(row[0]),
+                "contract_id": row[1],
+                "contract_num_detail": row[2],
+                "name": row[3],
+                "nik": row[4],
+                "nip": row[5],
+                "email": row[6],
+                "job_description": row[7],
+                "mobile_number": row[8]
+            })
+
+        return JSONResponse(content=result)
+
+    except Exception as e:
+        import traceback
+        print(f"Error getting unsigned active contracts: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)

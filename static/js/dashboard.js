@@ -229,6 +229,28 @@ function setupModalHandlers() {
     document.getElementById('send-unsent-only').addEventListener('click', () => {
         openBulkConfirmation('unsent');
     });
+
+    // Reminder modal handlers
+    const reminderModal = document.getElementById('reminder-modal');
+    const openReminderBtn = document.getElementById('open-reminder-modal');
+    const closeReminderBtn = document.getElementById('close-reminder-modal');
+    const cancelReminderBtn = document.getElementById('cancel-reminder');
+    const sendReminderBtn = document.getElementById('send-reminder-btn');
+
+    openReminderBtn.addEventListener('click', async () => {
+        reminderModal.classList.remove('hidden');
+        await loadUnsignedContracts();
+    });
+
+    closeReminderBtn.addEventListener('click', () => {
+        reminderModal.classList.add('hidden');
+    });
+
+    cancelReminderBtn.addEventListener('click', () => {
+        reminderModal.classList.add('hidden');
+    });
+
+    sendReminderBtn.addEventListener('click', sendReminder);
 }
 
 // Setup filter handlers
@@ -587,4 +609,119 @@ function showToast(message, type = 'info') {
         toast.style.animation = 'slideOutRight 0.3s ease-out';
         setTimeout(() => toast.remove(), 300);
     }, 3000);
+}
+
+// Load unsigned active contracts
+async function loadUnsignedContracts() {
+    try {
+        const response = await fetch('http://127.0.0.1:8000/api/unsigned-active-contracts');
+        const contracts = await response.json();
+
+        const listContainer = document.getElementById('reminder-contract-list');
+        const countSpan = document.getElementById('reminder-count');
+
+        countSpan.textContent = contracts.length;
+
+        if (contracts.length === 0) {
+            listContainer.innerHTML = '<p class="text-gray-500 text-sm p-4">No active contracts without signatures found.</p>';
+            return;
+        }
+
+        listContainer.innerHTML = contracts.map(contract => `
+            <div class="p-2 hover:bg-gray-50 rounded-lg transition-colors">
+                <label class="flex items-center cursor-pointer">
+                    <input type="checkbox" class="reminder-checkbox w-4 h-4 text-purple-600 rounded border-gray-300 focus:ring-purple-500" data-uid="${contract.uid}" data-name="${contract.name}" data-email="${contract.email}">
+                    <span class="ml-3 text-sm text-gray-700">${contract.name} - ${contract.contract_num_detail} (${contract.email || 'No email'})</span>
+                </label>
+            </div>
+        `).join('');
+
+        // Select all handler
+        document.getElementById('select-all-reminder').addEventListener('change', function() {
+            document.querySelectorAll('.reminder-checkbox').forEach(cb => {
+                cb.checked = this.checked;
+            });
+        });
+
+    } catch (error) {
+        console.error('Error loading unsigned contracts:', error);
+        showToast('Failed to load contracts', 'error');
+    }
+}
+
+// Send reminder email
+async function sendReminder() {
+    const checkboxes = document.querySelectorAll('.reminder-checkbox:checked');
+
+    if (checkboxes.length === 0) {
+        showToast('Please select at least one contract', 'error');
+        return;
+    }
+
+    const sendBtn = document.getElementById('send-reminder-btn');
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Sending...';
+
+    const reminderText = `Kami mengingatkan bahwa proses penandatanganan kontrak kerja waktu tertentu (PKWT) dijadwalkan untuk dilakukan hari ini 7 Oktober 2025, melalui platform digital.
+
+Mohon agar Saudara/i segera mengakses lampiran PKWT berikut untuk melakukan penandatanganan.
+
+Batas waktu penandatanganan adalah hari ini pukul 20:00.
+
+Terima kasih atas perhatian dan kerja samanya.
+
+Salam hangat,
+Tajunissa Legisa W
+General Manager
+PT JMAX Indonesia
+📧 Lisa@jmaxindo.com`;
+
+    const htmlBody = `<p>${reminderText.replace(/\n/g, '<br>')}</p>`;
+
+    let successCount = 0;
+    let failedCount = 0;
+
+    for (const checkbox of checkboxes) {
+        const name = checkbox.dataset.name;
+
+        try {
+            const response = await fetch('https://api.postmarkapp.com/email', {
+                method: 'POST',
+                headers: {
+                    'Accept': 'application/json',
+                    'Content-Type': 'application/json',
+                    'X-Postmark-Server-Token': 'e3e7715d-2a61-4187-b79e-6c27733c9cda'
+                },
+                body: JSON.stringify({
+                    From: 'hr@jmaxindo.id',
+                    To: 'teguh.hardiansah@proton.me',
+                    Subject: `Reminder: Penandatanganan PKWT - ${name}`,
+                    HtmlBody: htmlBody,
+                    TextBody: reminderText,
+                    MessageStream: 'broadcast'
+                })
+            });
+
+            if (response.ok) {
+                successCount++;
+            } else {
+                failedCount++;
+            }
+        } catch (error) {
+            console.error(`Error sending reminder for ${name}:`, error);
+            failedCount++;
+        }
+    }
+
+    sendBtn.disabled = false;
+    sendBtn.textContent = '📧 Send Reminder to Selected';
+
+    if (successCount > 0) {
+        showToast(`Sent ${successCount} reminder(s) successfully to teguh.hardiansah@proton.me!`, 'success');
+        document.getElementById('reminder-modal').classList.add('hidden');
+    }
+
+    if (failedCount > 0) {
+        showToast(`Failed to send ${failedCount} reminder(s)`, 'error');
+    }
 }

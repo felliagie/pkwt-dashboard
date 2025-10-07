@@ -52,3 +52,5 @@ Thumbs.db
 # Project specific
 *.zip
 claude/
+migration.sql
+generate_migration.py

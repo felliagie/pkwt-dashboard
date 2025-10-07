@@ -1776,28 +1776,10 @@ async def send_reminders(request: ReminderRequest):
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        for uid, name in zip(request.uids, request.names):
-            try:
-                # Get contract_num_detail_md5 for this uid
-                cursor.execute("""
-                    SELECT contract_num_detail_md5
-                    FROM authenticated_list_contract
-                    WHERE uid = %s
-                    LIMIT 1
-                """, (uid,))
-
-                result = cursor.fetchone()
-                if not result or not result[0]:
-                    failed_count += 1
-                    continue
-
-                contract_hash = result[0]
-                login_url = f"https://pkwt.jmaxindo.id/{contract_hash}"
-
-                reminder_text = f"""Kami mengingatkan bahwa proses penandatanganan kontrak kerja waktu tertentu (PKWT) dijadwalkan untuk dilakukan hari ini 7 Oktober 2025, melalui platform digital.
+        reminder_text = """Kami mengingatkan bahwa proses penandatanganan kontrak kerja waktu tertentu (PKWT) dijadwalkan untuk dilakukan hari ini 7 Oktober 2025, melalui platform digital.
 
 Mohon agar Saudara/i segera mengakses lampiran PKWT berikut untuk melakukan penandatanganan.
-{login_url}
+https://pkwt.jmaxindo.id
 
 Batas waktu penandatanganan adalah hari ini pukul 20:00.
 
@@ -1809,8 +1791,10 @@ General Manager
 PT JMAX Indonesia
 📧 Lisa@jmaxindo.com"""
 
-                html_body = f"<p>{reminder_text.replace(chr(10), '<br>')}</p>"
+        html_body = f"<p>{reminder_text.replace(chr(10), '<br>')}</p>"
 
+        for uid, name in zip(request.uids, request.names):
+            try:
                 postmark_response = requests.post(
                     'https://api.postmarkapp.com/email',
                     headers={

@@ -1777,9 +1777,9 @@ async def send_reminders(request: ReminderRequest):
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        reminder_text = """Kami mengingatkan bahwa proses penandatanganan kontrak kerja waktu tertentu (PKWT) melalui platform digital.
+        reminder_text = """Kami mengingatkan bahwa proses penandatanganan kontrak kerja waktu tertentu (PKWT) dapat diakses melalui platform digital.
 
-Mohon agar Saudara/i segera mengakses lampiran PKWT berikut untuk melakukan penandatanganan.
+Kami telah melakukan aktivasi untuk seluruh akun. Segera akses laman berikut dan login untuk melakukan penandatanganan kontrak.
 https://pkwt.jmaxindo.id
 
 Terima kasih atas perhatian dan kerja samanya.

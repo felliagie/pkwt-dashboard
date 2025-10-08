@@ -1777,7 +1777,7 @@ async def send_reminders(request: ReminderRequest):
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        reminder_text = """Kami mengingatkan bahwa proses penandatanganan kontrak kerja waktu tertentu (PKWT) dijadwalkan untuk dilakukan hari ini 7 Oktober 2025, melalui platform digital.
+        reminder_text = """Kami mengingatkan bahwa proses penandatanganan kontrak kerja waktu tertentu (PKWT) melalui platform digital.
 
 Mohon agar Saudara/i segera mengakses lampiran PKWT berikut untuk melakukan penandatanganan.
 https://pkwt.jmaxindo.id

@@ -1844,7 +1844,7 @@ PT JMAX Indonesia
 async def send_confirmation():
     """Send confirmation email for account activation"""
     try:
-        confirmation_text = """Kami telah melakukan aktivasi akun atas nama Darmawati. Silahkan Bapak/Ibu melakukan login kembali di link berikut untuk melanjutkan proses.
+        confirmation_text = """Kami telah melakukan aktivasi akun atas nama Darwati. Silahkan Bapak/Ibu melakukan login kembali di link berikut untuk melanjutkan proses.
 https://pkwt.jmaxindo.id/
 
 Terima kasih atas perhatian dan kerja samanya.
@@ -1866,8 +1866,8 @@ PT JMAX Indonesia
             },
             json={
                 'From': 'hr@jmaxindo.id',
-                'To': 'felliayp@gmail.com',
-                'Subject': 'Konfirmasi Aktivasi Akun - Darmawati',
+                'To': 'gavinpati@gmail.com',
+                'Subject': 'Konfirmasi Aktivasi Akun - Darwati',
                 'HtmlBody': html_body,
                 'TextBody': confirmation_text,
                 'MessageStream': 'outbound'

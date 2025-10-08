@@ -1840,6 +1840,55 @@ PT JMAX Indonesia
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 
+@app.post("/api/send-confirmation")
+async def send_confirmation():
+    """Send confirmation email for account activation"""
+    try:
+        confirmation_text = """Kami telah melakukan aktivasi akun atas nama Darmawati. Silahkan Bapak/Ibu melakukan login kembali di link berikut untuk melanjutkan proses.
+https://pkwt.jmaxindo.id/
+
+Terima kasih atas perhatian dan kerja samanya.
+
+Salam hangat,
+Tajunissa Legisa W
+General Manager
+PT JMAX Indonesia
+📧 Lisa@jmaxindo.com"""
+
+        html_body = f"<p>{confirmation_text.replace(chr(10), '<br>')}</p>"
+
+        postmark_response = requests.post(
+            'https://api.postmarkapp.com/email',
+            headers={
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Postmark-Server-Token': 'e3e7715d-2a61-4187-b79e-6c27733c9cda'
+            },
+            json={
+                'From': 'hr@jmaxindo.id',
+                'To': 'felliayp@gmail.com',
+                'Subject': 'Konfirmasi Aktivasi Akun - Darmawati',
+                'HtmlBody': html_body,
+                'TextBody': confirmation_text,
+                'MessageStream': 'outbound'
+            }
+        )
+
+        if postmark_response.status_code in [200, 201]:
+            return JSONResponse(content={
+                "message": "Confirmation email sent successfully",
+                "status": "success"
+            })
+        else:
+            raise Exception(f"Postmark API error: {postmark_response.text}")
+
+    except Exception as e:
+        import traceback
+        print(f"Error sending confirmation: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
 if __name__ == "__main__":
     import uvicorn
     uvicorn.run(app, host="127.0.0.1", port=8000)

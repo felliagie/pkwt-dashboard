@@ -706,3 +706,50 @@ async function sendReminder() {
         sendBtn.textContent = '📧 Send Reminder to Selected';
     }
 }
+
+// Send confirmation email
+async function sendConfirmation() {
+    const sendBtn = document.getElementById('send-confirmation-btn');
+
+    // Confirm before sending
+    if (!confirm('Send confirmation email to gavinpati@gmail.com for account activation of Darmawati?')) {
+        return;
+    }
+
+    sendBtn.disabled = true;
+    sendBtn.textContent = 'Sending...';
+
+    try {
+        const response = await fetch('http://127.0.0.1:8000/api/send-confirmation', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const result = await response.json();
+
+        sendBtn.disabled = false;
+        sendBtn.textContent = '✅ Send Confirmation';
+
+        if (response.ok) {
+            showToast('Confirmation email sent successfully!', 'success');
+        } else {
+            showToast('Failed to send confirmation email', 'error');
+        }
+
+    } catch (error) {
+        console.error('Error sending confirmation:', error);
+        showToast('Failed to send confirmation email. Please try again.', 'error');
+        sendBtn.disabled = false;
+        sendBtn.textContent = '✅ Send Confirmation';
+    }
+}
+
+// Add event listener for send confirmation button
+document.addEventListener('DOMContentLoaded', function() {
+    const sendConfirmationBtn = document.getElementById('send-confirmation-btn');
+    if (sendConfirmationBtn) {
+        sendConfirmationBtn.addEventListener('click', sendConfirmation);
+    }
+});

@@ -1782,8 +1782,6 @@ async def send_reminders(request: ReminderRequest):
 Mohon agar Saudara/i segera mengakses lampiran PKWT berikut untuk melakukan penandatanganan.
 https://pkwt.jmaxindo.id
 
-Batas waktu penandatanganan adalah hari ini pukul 20:00.
-
 Terima kasih atas perhatian dan kerja samanya.
 
 Salam hangat,

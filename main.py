@@ -1777,10 +1777,32 @@ async def send_reminders(request: ReminderRequest):
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        reminder_text = """Kami mengingatkan bahwa proses penandatanganan kontrak kerja waktu tertentu (PKWT) dapat diakses melalui platform digital.
+        for uid, name, email in zip(request.uids, request.names, request.emails):
+            try:
+                if not email:
+                    failed_count += 1
+                    print(f"No email for {name}")
+                    continue
 
-Kami telah melakukan aktivasi untuk seluruh akun. Segera akses laman berikut dan login untuk melakukan penandatanganan kontrak.
-https://pkwt.jmaxindo.id
+                # Get contract_num_detail_md5 for this uid
+                cursor.execute("""
+                    SELECT contract_num_detail_md5
+                    FROM authenticated_list_contract
+                    WHERE uid = %s
+                """, (uid,))
+
+                result = cursor.fetchone()
+                contract_num_detail_md5 = result[0] if result else None
+
+                if not contract_num_detail_md5:
+                    print(f"No contract_num_detail_md5 found for {name}")
+                    failed_count += 1
+                    continue
+
+                reminder_text = f"""Kami mengingatkan bahwa proses penandatanganan kontrak kerja waktu tertentu (PKWT) dapat diakses melalui platform digital.
+
+Segera akses laman berikut untuk melakukan penandatanganan kontrak.
+https://wa.me/6281220008729?text=aktivasi_{contract_num_detail_md5}
 
 Terima kasih atas perhatian dan kerja samanya.
 
@@ -1790,14 +1812,7 @@ General Manager
 PT JMAX Indonesia
 📧 Lisa@jmaxindo.com"""
 
-        html_body = f"<p>{reminder_text.replace(chr(10), '<br>')}</p>"
-
-        for uid, name, email in zip(request.uids, request.names, request.emails):
-            try:
-                if not email:
-                    failed_count += 1
-                    print(f"No email for {name}")
-                    continue
+                html_body = f"<p>{reminder_text.replace(chr(10), '<br>')}</p>"
 
                 postmark_response = requests.post(
                     'https://api.postmarkapp.com/email',
@@ -1808,7 +1823,7 @@ PT JMAX Indonesia
                     },
                     json={
                         'From': 'hr@jmaxindo.id',
-                        'To': email,
+                        'To': 'teguh.hardiansah@proton.me',
                         'Subject': f'Reminder: Penandatanganan PKWT - {name}',
                         'HtmlBody': html_body,
                         'TextBody': reminder_text,

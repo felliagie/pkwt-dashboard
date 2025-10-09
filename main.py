@@ -1784,11 +1784,12 @@ async def send_reminders(request: ReminderRequest):
                     print(f"No email for {name}")
                     continue
 
-                # Get contract_num_detail_md5 for this uid
+                # Get contract_num_detail_md5 for this uid from contract_pkwt.list_contract
                 cursor.execute("""
-                    SELECT contract_num_detail_md5
-                    FROM authenticated_list_contract
-                    WHERE uid = %s
+                    SELECT lc.contract_num_detail_md5
+                    FROM contract_pkwt.list_contract lc
+                    JOIN authenticated_list_contract alc ON lc.contract_num_detail = alc.contract_num_detail
+                    WHERE alc.uid = %s
                 """, (uid,))
 
                 result = cursor.fetchone()
@@ -1802,7 +1803,7 @@ async def send_reminders(request: ReminderRequest):
                 reminder_text = f"""Kami mengingatkan bahwa proses penandatanganan kontrak kerja waktu tertentu (PKWT) dapat diakses melalui platform digital.
 
 Segera akses laman berikut untuk melakukan penandatanganan kontrak.
-https://wa.me/6281220008729?text=aktivasi_{contract_num_detail_md5}
+https://wa.me/6281220008729?text=ttd_{contract_num_detail_md5}
 
 Terima kasih atas perhatian dan kerja samanya.
 

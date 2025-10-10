@@ -192,6 +192,11 @@ async def signage_page():
     with open("static/signage.html", "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read(), status_code=200)
 
+@app.get("/signed", response_class=HTMLResponse)
+async def signed_page():
+    with open("static/signed.html", "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read(), status_code=200)
+
 @app.get("/contract-preview", response_class=HTMLResponse)
 async def contract_preview():
     try:
@@ -1901,6 +1906,74 @@ PT JMAX Indonesia
     except Exception as e:
         import traceback
         print(f"Error sending confirmation: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/api/signed-contracts")
+async def get_signed_contracts():
+    """Get all signed contracts from contract_signatures table"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT
+                uid,
+                contract_num_detail,
+                signer_name,
+                signed_at
+            FROM contract_signatures
+            ORDER BY signed_at DESC
+        """)
+
+        contracts = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        result = []
+        for row in contracts:
+            result.append({
+                "uid": str(row[0]),
+                "contract_num_detail": row[1],
+                "signer_name": row[2],
+                "signed_at": row[3].isoformat() if row[3] else None
+            })
+
+        return JSONResponse(content=result)
+
+    except Exception as e:
+        import traceback
+        print(f"Error getting signed contracts: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/api/signed-contracts/{uid}/pdf")
+async def get_signed_contract_pdf(uid: str):
+    """Get signed PDF for a specific contract by UID"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT signed_pdf
+            FROM contract_signatures
+            WHERE uid = %s
+        """, (uid,))
+
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if result and result[0]:
+            return Response(content=bytes(result[0]), media_type="application/pdf")
+        else:
+            return JSONResponse(status_code=404, content={"error": "Signed PDF not found"})
+
+    except Exception as e:
+        import traceback
+        print(f"Error retrieving signed PDF: {str(e)}")
         print(f"Traceback: {traceback.format_exc()}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 

@@ -249,6 +249,15 @@ async def payroll_base_page(session_id: Optional[str] = Cookie(None)):
     with open("static/payroll-base.html", "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read(), status_code=200)
 
+@app.get("/payroll-preview/{list_payroll_id}", response_class=HTMLResponse)
+async def payroll_preview_page(list_payroll_id: int, session_id: Optional[str] = Cookie(None)):
+    user = get_user_from_session(session_id)
+    if not user:
+        return RedirectResponse(url="/login")
+
+    with open("static/payroll-preview.html", "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read(), status_code=200)
+
 # Payroll API Endpoints
 @app.post("/api/payroll-campaigns")
 async def create_payroll_campaign(campaign: PayrollCampaignCreate):
@@ -323,7 +332,66 @@ async def finalize_payroll_campaign(campaign_id: int, request: Request):
         conn = get_db_connection()
         cursor = conn.cursor()
 
+        # Get campaign details for template
+        cursor.execute("""
+            SELECT company, send_at
+            FROM contract_pkwt.payroll_campaign
+            WHERE payroll_campaign_id = %s
+        """, (campaign_id,))
+        campaign_result = cursor.fetchone()
+        company_name = campaign_result[0] if campaign_result else "PT. Mandom Indonesia"
+        payment_date = campaign_result[1] if campaign_result else datetime.now()
+
+        # Format payment date
+        formatted_date = payment_date.strftime('%d-%b-%y') if isinstance(payment_date, datetime) else str(payment_date)
+
+        # Load payroll slip HTML template
+        template_path = os.path.join(os.path.dirname(__file__), 'static', 'payroll-base.html')
+        with open(template_path, 'r', encoding='utf-8') as f:
+            html_template_base = f.read()
+
+        # Helper function to format currency
+        def format_currency(value):
+            if value is None or value == 0 or value == '0':
+                return '-'
+            rounded = round(float(value))
+            return 'Rp ' + '{:,}'.format(rounded).replace(',', '.')
+
+        # Helper function to display value
+        def display_value(value):
+            if value is None or value == '':
+                return '-'
+            return str(value)
+
+        # PDF generation function
+        async def generate_payroll_pdf_with_playwright(html_content, employee_name='Employee', custom_size=False):
+            """Generate PDF from HTML using Playwright"""
+            async with async_playwright() as p:
+                browser = await p.chromium.launch()
+                page = await browser.new_page()
+                await page.set_content(html_content, wait_until='networkidle')
+
+                pdf_options = {
+                    'print_background': True,
+                    'display_header_footer': False
+                }
+
+                if custom_size:
+                    # Custom size: 8.50 x 5.50 inches
+                    pdf_options['width'] = '8.50in'
+                    pdf_options['height'] = '5.50in'
+                    pdf_options['margin'] = {'top': '0.25in', 'right': '0.25in', 'bottom': '0.25in', 'left': '0.25in'}
+                else:
+                    # Default A4 format
+                    pdf_options['format'] = 'A4'
+                    pdf_options['margin'] = {'top': '1cm', 'right': '1cm', 'bottom': '1cm', 'left': '1cm'}
+
+                pdf_bytes = await page.pdf(**pdf_options)
+                await browser.close()
+                return pdf_bytes
+
         inserted_count = 0
+        pdf_generated_count = 0
 
         for employee in data:
             # Insert into list_payroll (list_payroll_id is auto-incremented)
@@ -342,7 +410,7 @@ async def finalize_payroll_campaign(campaign_id: int, request: Request):
                 ) VALUES (
                     %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
                     %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
-                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
                 )
                 RETURNING list_payroll_id
             """, (
@@ -396,28 +464,247 @@ async def finalize_payroll_campaign(campaign_id: int, request: Request):
 
             list_payroll_id = cursor.fetchone()[0]
 
-            # Insert into payroll_status
-            cursor.execute("""
-                INSERT INTO contract_pkwt.payroll_status (
-                    payroll_campaign_id, list_payroll_id, send_status
-                ) VALUES (%s, %s, FALSE)
-            """, (campaign_id, list_payroll_id))
+            # Generate PDF for this employee
+            try:
+                html_template = html_template_base
+
+                # Replace employee data placeholders
+                bank_display = display_value(employee.get('beneficiary_bank')) + ' (' + display_value(employee.get('bank_account_no')) + ')'
+                date_display = payment_date.strftime('%B %d, %Y') if isinstance(payment_date, datetime) else str(payment_date)
+
+                replacements = {
+                    'Jein Lumempouw': display_value(employee.get('employee_name')),
+                    'M25091060': display_value(employee.get('employee_id')),
+                    'BA PIXY Palu': display_value(employee.get('job_titles')),
+                    'PT. Mandom Indonesia': company_name,
+                    '31-Oct-25': formatted_date,
+                    'TK / 0': display_value(employee.get('tax_code')),
+                    '25': display_value(employee.get('working_days')),
+                    'BRI (043401014645502)': bank_display,
+                    'Rp 3.617.000': format_currency(employee.get('basic_pay')),
+                    'Rp 2.100.000': format_currency(employee.get('incentive')),
+                    'Rp -602.833': format_currency(employee.get('potongan')),
+                    'Rp 5.114.167': format_currency(employee.get('total_salary')),
+                    'Rp 72.340': format_currency(employee.get('jht_2_percent_deduction')),
+                    'Rp 36.170': format_currency(employee.get('jp_1_percent_deduction')),
+                    'Rp 144.680': format_currency(employee.get('total_deduction')),
+                    'Rp 4.969.487': format_currency(employee.get('thp')),
+                    'October 31, 2025': date_display
+                }
+
+                # Apply replacements
+                for old_val, new_val in replacements.items():
+                    html_template = html_template.replace(old_val, new_val)
+
+                # Handle KSD, TDK, Tunjangan Pajak, PPH21 fields that may be null/0
+                ksd_val = employee.get('ksd')
+                tdk_val = employee.get('tdk')
+                tunjangan_val = employee.get('tunjangan')
+                pph21_val = employee.get('pph21')
+                bpjs_kesehatan_val = employee.get('bpjs_kesehatan_1_percent_deduction')
+
+                # Replace KSD values (both occurrences)
+                ksd_display = format_currency(ksd_val) if ksd_val and ksd_val != 0 else '-'
+                ksd_class = "text-gray-900 font-medium" if ksd_val and ksd_val != 0 else "text-gray-400"
+                ksd_replacement = '<td class="px-4 py-2 text-right ' + ksd_class + '">' + ksd_display + '</td>'
+                html_template = html_template.replace('<td class="px-4 py-2 text-right text-gray-400">-</td>', ksd_replacement, 1)
+
+                # Replace TDK
+                tdk_display = format_currency(tdk_val) if tdk_val and tdk_val != 0 else '-'
+                tdk_class = "text-gray-900 font-medium" if tdk_val and tdk_val != 0 else "text-gray-400"
+                tdk_replacement = '<td class="px-4 py-2 text-right ' + tdk_class + '">' + tdk_display + '</td>'
+                html_template = html_template.replace('<td class="px-4 py-2 text-right text-gray-400">-</td>', tdk_replacement, 1)
+
+                # Replace Tunjangan Pajak
+                tunjangan_display = format_currency(tunjangan_val) if tunjangan_val and tunjangan_val != 0 else '-'
+                tunjangan_class = "text-gray-900 font-medium" if tunjangan_val and tunjangan_val != 0 else "text-gray-400"
+                tunjangan_replacement = '<td class="px-4 py-2 text-right ' + tunjangan_class + '">' + tunjangan_display + '</td>'
+                html_template = html_template.replace('<td class="px-4 py-2 text-right text-gray-400">-</td>', tunjangan_replacement, 1)
+
+                # Replace PPH21
+                pph21_display = format_currency(pph21_val) if pph21_val and pph21_val != 0 else '-'
+                pph21_class = "text-gray-900 font-medium" if pph21_val and pph21_val != 0 else "text-gray-400"
+                pph21_replacement = '<td class="px-4 py-2 text-right ' + pph21_class + '">' + pph21_display + '</td>'
+                html_template = html_template.replace('<td class="px-4 py-2 text-right text-gray-400">-</td>', pph21_replacement, 1)
+
+                # Replace BPJS Kesehatan 1%
+                html_template = html_template.replace('Rp 36.170', format_currency(bpjs_kesehatan_val), 1)
+
+                # Remove action buttons for PDF
+                html_template = html_template.replace('<div class="mb-6 flex gap-3 justify-end print:hidden">', '<div style="display:none;">')
+
+                # Generate PDF with custom size (8.50 x 5.50 inches)
+                employee_name = employee.get('employee_name', 'Employee')
+                pdf_bytes = await generate_payroll_pdf_with_playwright(html_template, employee_name, custom_size=True)
+
+                # Insert into payroll_status with PDF data
+                cursor.execute("""
+                    INSERT INTO contract_pkwt.payroll_status (
+                        payroll_campaign_id, list_payroll_id, send_status, pdf_data
+                    ) VALUES (%s, %s, FALSE, %s)
+                """, (campaign_id, list_payroll_id, pdf_bytes))
+
+                pdf_generated_count += 1
+                print(f"Generated PDF for {employee_name}")
+
+            except Exception as pdf_error:
+                print(f"Error generating PDF for {employee.get('employee_name')}: {pdf_error}")
+                # Still insert payroll_status without PDF
+                cursor.execute("""
+                    INSERT INTO contract_pkwt.payroll_status (
+                        payroll_campaign_id, list_payroll_id, send_status
+                    ) VALUES (%s, %s, FALSE)
+                """, (campaign_id, list_payroll_id))
 
             inserted_count += 1
 
         # Update payroll campaign with totals
         cursor.execute("""
             UPDATE contract_pkwt.payroll_campaign
-            SET pdf_total = %s, pdf_status = 'pending'
+            SET pdf_total = %s, pdf_generated = %s, pdf_status = %s
             WHERE payroll_campaign_id = %s
-        """, (inserted_count, campaign_id))
+        """, (inserted_count, pdf_generated_count, 'completed' if pdf_generated_count == inserted_count else 'partial', campaign_id))
 
         conn.commit()
         cursor.close()
         conn.close()
 
-        return {"inserted_count": inserted_count, "message": "Payroll data saved successfully"}
+        message = "Payroll data saved successfully. " + str(pdf_generated_count) + "/" + str(inserted_count) + " PDFs generated."
+
+        return {
+            "inserted_count": inserted_count,
+            "pdf_generated_count": pdf_generated_count,
+            "message": message
+        }
     except Exception as e:
+        import traceback
+        print("ERROR in finalize_payroll_campaign:")
+        print(traceback.format_exc())
+        return JSONResponse(status_code=500, content={"detail": str(e)})
+
+@app.get("/api/payroll/{list_payroll_id}")
+async def get_payroll_data(list_payroll_id: int, session_id: Optional[str] = Cookie(None)):
+    """Get detailed payroll data for a specific employee"""
+    user = get_user_from_session(session_id)
+    if not user:
+        return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT
+                lp.*,
+                pc.company,
+                pc.send_at,
+                pc.status as campaign_status,
+                ps.send_status,
+                ps.send_at as pdf_sent_at
+            FROM contract_pkwt.list_payroll lp
+            JOIN contract_pkwt.payroll_campaign pc ON lp.payroll_campaign_id = pc.payroll_campaign_id
+            LEFT JOIN contract_pkwt.payroll_status ps ON lp.list_payroll_id = ps.list_payroll_id
+            WHERE lp.list_payroll_id = %s
+        """, (list_payroll_id,))
+
+        row = cursor.fetchone()
+        if not row:
+            conn.close()
+            return JSONResponse(status_code=404, content={"detail": "Payroll not found"})
+
+        columns = [desc[0] for desc in cursor.description]
+        payroll_data = dict(zip(columns, row))
+
+        # Convert date/datetime objects to strings
+        for key, value in payroll_data.items():
+            if hasattr(value, 'isoformat'):
+                payroll_data[key] = value.isoformat()
+
+        conn.close()
+        return payroll_data
+    except Exception as e:
+        import traceback
+        print("ERROR in get_payroll_data:")
+        print(traceback.format_exc())
+        return JSONResponse(status_code=500, content={"detail": str(e)})
+
+@app.get("/api/payroll/{list_payroll_id}/pdf")
+async def get_payroll_pdf(list_payroll_id: int, session_id: Optional[str] = Cookie(None)):
+    """Get PDF for a specific payroll"""
+    user = get_user_from_session(session_id)
+    if not user:
+        return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT ps.pdf_data, lp.employee_name
+            FROM contract_pkwt.payroll_status ps
+            JOIN contract_pkwt.list_payroll lp ON ps.list_payroll_id = lp.list_payroll_id
+            WHERE ps.list_payroll_id = %s
+        """, (list_payroll_id,))
+
+        row = cursor.fetchone()
+        conn.close()
+
+        if not row or not row[0]:
+            return JSONResponse(status_code=404, content={"detail": "PDF not found"})
+
+        pdf_data = bytes(row[0])
+        employee_name = row[1] or 'Employee'
+
+        # Clean employee name for filename
+        safe_name = "".join(c if c.isalnum() or c in (' ', '-', '_') else '_' for c in employee_name)
+        filename = f"Payslip_{safe_name}.pdf"
+
+        return Response(
+            content=pdf_data,
+            media_type="application/pdf",
+            headers={"Content-Disposition": f'inline; filename="{filename}"'}
+        )
+    except Exception as e:
+        import traceback
+        print("ERROR in get_payroll_pdf:")
+        print(traceback.format_exc())
+        return JSONResponse(status_code=500, content={"detail": str(e)})
+
+@app.get("/api/payroll/campaign/{campaign_id}/employees")
+async def get_campaign_employees(campaign_id: int, session_id: Optional[str] = Cookie(None)):
+    """Get list of all employees in a payroll campaign for navigation"""
+    user = get_user_from_session(session_id)
+    if not user:
+        return JSONResponse(status_code=401, content={"detail": "Unauthorized"})
+
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT list_payroll_id, employee_name, employee_id
+            FROM contract_pkwt.list_payroll
+            WHERE payroll_campaign_id = %s
+            ORDER BY employee_name
+        """, (campaign_id,))
+
+        rows = cursor.fetchall()
+        conn.close()
+
+        employees = [
+            {
+                "list_payroll_id": row[0],
+                "employee_name": row[1],
+                "employee_id": row[2]
+            }
+            for row in rows
+        ]
+
+        return {"employees": employees}
+    except Exception as e:
+        import traceback
+        print("ERROR in get_campaign_employees:")
+        print(traceback.format_exc())
         return JSONResponse(status_code=500, content={"detail": str(e)})
 
 @app.get("/api/dashboard-stats")

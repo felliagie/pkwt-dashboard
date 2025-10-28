@@ -27,27 +27,27 @@ function goToStep(step) {
     // Update timeline
     document.querySelectorAll('.timeline-step').forEach((el, index) => {
         const stepNum = index + 1;
-        const circle = el.querySelector('.timeline-circle');
-        const label = el.querySelector('.timeline-label');
 
         if (stepNum < step) {
             // Completed steps
-            circle.classList.remove('bg-gray-200', 'text-gray-600', 'border-gray-300', 'bg-purple-600', 'text-white', 'border-purple-600');
-            circle.classList.add('bg-green-500', 'text-white', 'border-green-500');
-            label.classList.remove('text-gray-600', 'text-purple-600', 'font-semibold');
-            label.classList.add('text-green-500');
+            el.classList.remove('active');
+            el.classList.add('completed');
         } else if (stepNum === step) {
             // Current step
-            circle.classList.remove('bg-gray-200', 'text-gray-600', 'border-gray-300', 'bg-green-500');
-            circle.classList.add('bg-purple-600', 'text-white', 'border-purple-600');
-            label.classList.remove('text-gray-600', 'text-green-500');
-            label.classList.add('text-purple-600', 'font-semibold');
+            el.classList.remove('completed');
+            el.classList.add('active');
         } else {
             // Future steps
-            circle.classList.remove('bg-green-500', 'text-white', 'border-green-500', 'bg-purple-600', 'border-purple-600');
-            circle.classList.add('bg-gray-200', 'text-gray-600', 'border-gray-300');
-            label.classList.remove('text-green-500', 'text-purple-600', 'font-semibold');
-            label.classList.add('text-gray-600');
+            el.classList.remove('active', 'completed');
+        }
+    });
+
+    // Update connectors
+    document.querySelectorAll('.timeline-connector').forEach((connector, index) => {
+        if (index < step - 1) {
+            connector.classList.add('completed');
+        } else {
+            connector.classList.remove('completed');
         }
     });
 
@@ -211,7 +211,7 @@ function displayEmployeeData(data) {
             <td class="px-4 py-3 text-sm text-gray-900">${displayValue(employee.employee_id)}</td>
             <td class="px-4 py-3 text-sm text-gray-900">${displayValue(employee.employee_name)}</td>
             <td class="px-4 py-3 text-sm text-gray-600">${displayValue(employee.job_titles)}</td>
-            <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">Rp ${formatNumber(employee.thp || 0)}</td>
+            <td class="px-4 py-3 text-sm text-right font-semibold text-gray-900">${formatCurrency(employee.thp)}</td>
             <td class="px-4 py-3 text-center">
                 <button onclick="previewPayrollSlip(${index})" class="inline-flex items-center px-3 py-1 bg-purple-100 hover:bg-purple-200 text-purple-700 text-sm font-medium rounded-lg transition-colors">
                     <svg class="w-4 h-4 mr-1" fill="none" stroke="currentColor" viewBox="0 0 24 24">
@@ -228,7 +228,19 @@ function displayEmployeeData(data) {
 
 // Format number with thousand separators
 function formatNumber(num) {
-    return new Intl.NumberFormat('id-ID').format(num);
+    // Round the number first
+    const rounded = Math.round(num);
+    return new Intl.NumberFormat('id-ID').format(rounded);
+}
+
+// Format currency - show "-" for 0 or null values
+function formatCurrency(value) {
+    if (value === null || value === undefined || value === 0 || value === '0') {
+        return '-';
+    }
+    // Round the value first
+    const rounded = Math.round(value);
+    return 'Rp ' + new Intl.NumberFormat('id-ID').format(rounded);
 }
 
 // Convert null/undefined values to "-"
@@ -316,31 +328,31 @@ async function previewPayrollSlip(index) {
                             <tbody class="divide-y divide-gray-200">
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-4 py-2 text-gray-700">Basic Salary</td>
-                                    <td class="px-4 py-2 text-right text-gray-900 font-medium">Rp ${formatNumber(employee.basic_pay || 0)}</td>
+                                    <td class="px-4 py-2 text-right ${employee.basic_pay ? 'text-gray-900 font-medium' : 'text-gray-400'}">${formatCurrency(employee.basic_pay)}</td>
                                 </tr>
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-4 py-2 text-gray-700">KSD</td>
-                                    <td class="px-4 py-2 text-right ${employee.ksd !== null && employee.ksd !== undefined ? 'text-gray-900 font-medium' : 'text-gray-400'}">${employee.ksd !== null && employee.ksd !== undefined ? 'Rp ' + formatNumber(employee.ksd) : '-'}</td>
+                                    <td class="px-4 py-2 text-right ${employee.ksd ? 'text-gray-900 font-medium' : 'text-gray-400'}">${formatCurrency(employee.ksd)}</td>
                                 </tr>
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-4 py-2 text-gray-700">Incentive</td>
-                                    <td class="px-4 py-2 text-right ${employee.incentive !== null && employee.incentive !== undefined ? 'text-gray-900 font-medium' : 'text-gray-400'}">${employee.incentive !== null && employee.incentive !== undefined ? 'Rp ' + formatNumber(employee.incentive) : '-'}</td>
+                                    <td class="px-4 py-2 text-right ${employee.incentive ? 'text-gray-900 font-medium' : 'text-gray-400'}">${formatCurrency(employee.incentive)}</td>
                                 </tr>
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-4 py-2 text-gray-700">TDK</td>
-                                    <td class="px-4 py-2 text-right ${employee.tdk !== null && employee.tdk !== undefined ? 'text-gray-900 font-medium' : 'text-gray-400'}">${employee.tdk !== null && employee.tdk !== undefined ? 'Rp ' + formatNumber(employee.tdk) : '-'}</td>
+                                    <td class="px-4 py-2 text-right ${employee.tdk ? 'text-gray-900 font-medium' : 'text-gray-400'}">${formatCurrency(employee.tdk)}</td>
                                 </tr>
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-4 py-2 text-gray-700">Potongan Absensi</td>
-                                    <td class="px-4 py-2 text-right ${employee.potongan !== null && employee.potongan !== undefined ? 'text-gray-900 font-medium' : 'text-gray-400'}">${employee.potongan !== null && employee.potongan !== undefined ? 'Rp ' + formatNumber(employee.potongan) : '-'}</td>
+                                    <td class="px-4 py-2 text-right ${employee.potongan ? 'text-gray-900 font-medium' : 'text-gray-400'}">${formatCurrency(employee.potongan)}</td>
                                 </tr>
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-4 py-2 text-gray-700">Tunjangan Pajak</td>
-                                    <td class="px-4 py-2 text-right ${employee.tunjangan !== null && employee.tunjangan !== undefined ? 'text-gray-900 font-medium' : 'text-gray-400'}">${employee.tunjangan !== null && employee.tunjangan !== undefined ? 'Rp ' + formatNumber(employee.tunjangan) : '-'}</td>
+                                    <td class="px-4 py-2 text-right ${employee.tunjangan ? 'text-gray-900 font-medium' : 'text-gray-400'}">${formatCurrency(employee.tunjangan)}</td>
                                 </tr>
                                 <tr class="bg-gray-50">
                                     <td class="px-4 py-3 font-bold text-gray-900">TOTAL EARNINGS</td>
-                                    <td class="px-4 py-3 text-right font-bold text-gray-900">Rp ${formatNumber(employee.total_salary || 0)}</td>
+                                    <td class="px-4 py-3 text-right font-bold text-gray-900">${formatCurrency(employee.total_salary)}</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -355,19 +367,19 @@ async function previewPayrollSlip(index) {
                             <tbody class="divide-y divide-gray-200">
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-4 py-2 text-gray-700">JHT 2%</td>
-                                    <td class="px-4 py-2 text-right text-gray-900 font-medium">Rp ${formatNumber(employee.jht_2_percent_deduction || 0)}</td>
+                                    <td class="px-4 py-2 text-right ${employee.jht_2_percent_deduction ? 'text-gray-900 font-medium' : 'text-gray-400'}">${formatCurrency(employee.jht_2_percent_deduction)}</td>
                                 </tr>
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-4 py-2 text-gray-700">JP 1%</td>
-                                    <td class="px-4 py-2 text-right text-gray-900 font-medium">Rp ${formatNumber(employee.jp_1_percent_deduction || 0)}</td>
+                                    <td class="px-4 py-2 text-right ${employee.jp_1_percent_deduction ? 'text-gray-900 font-medium' : 'text-gray-400'}">${formatCurrency(employee.jp_1_percent_deduction)}</td>
                                 </tr>
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-4 py-2 text-gray-700">BPJS Kesehatan 1%</td>
-                                    <td class="px-4 py-2 text-right text-gray-900 font-medium">Rp ${formatNumber(employee.bpjs_kesehatan_1_percent_deduction || 0)}</td>
+                                    <td class="px-4 py-2 text-right ${employee.bpjs_kesehatan_1_percent_deduction ? 'text-gray-900 font-medium' : 'text-gray-400'}">${formatCurrency(employee.bpjs_kesehatan_1_percent_deduction)}</td>
                                 </tr>
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-4 py-2 text-gray-700">PPH21</td>
-                                    <td class="px-4 py-2 text-right text-gray-400">-</td>
+                                    <td class="px-4 py-2 text-right ${employee.pph21 ? 'text-gray-900 font-medium' : 'text-gray-400'}">${formatCurrency(employee.pph21)}</td>
                                 </tr>
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-4 py-2 text-gray-700">&nbsp;</td>
@@ -379,7 +391,7 @@ async function previewPayrollSlip(index) {
                                 </tr>
                                 <tr class="bg-gray-50">
                                     <td class="px-4 py-3 font-bold text-gray-900">TOTAL DEDUCTIONS</td>
-                                    <td class="px-4 py-3 text-right font-bold text-gray-900">Rp ${formatNumber(employee.total_deduction || 0)}</td>
+                                    <td class="px-4 py-3 text-right font-bold text-gray-900">${formatCurrency(employee.total_deduction)}</td>
                                 </tr>
                             </tbody>
                         </table>
@@ -392,7 +404,7 @@ async function previewPayrollSlip(index) {
                 <div class="bg-gray-50 border-2 border-gray-300 rounded-lg p-3">
                     <div class="flex items-center justify-between">
                         <span class="text-base font-bold text-gray-900">TAKE HOME PAY</span>
-                        <span class="text-xl font-bold text-gray-900">Rp ${formatNumber(employee.thp || 0)}</span>
+                        <span class="text-xl font-bold text-gray-900">${formatCurrency(employee.thp)}</span>
                     </div>
                 </div>
             </div>
@@ -444,7 +456,7 @@ document.getElementById('confirm-btn').addEventListener('click', async () => {
     const btn = document.getElementById('confirm-btn');
     const originalText = btn.innerHTML;
     btn.disabled = true;
-    btn.innerHTML = '<svg class="animate-spin h-5 w-5 mr-2 inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Saving...';
+    btn.innerHTML = '<svg class="animate-spin h-5 w-5 mr-2 inline" fill="none" viewBox="0 0 24 24"><circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle><path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path></svg>Saving & Generating PDFs...';
 
     try {
         const response = await fetch(`/api/payroll-campaigns/${payrollCampaignId}/finalize`, {
@@ -459,7 +471,11 @@ document.getElementById('confirm-btn').addEventListener('click', async () => {
 
         if (response.ok) {
             const result = await response.json();
-            alert(`Success! ${result.inserted_count} payroll records saved to database.`);
+            const pdfStatus = result.pdf_generated_count === result.inserted_count
+                ? 'All PDFs generated successfully!'
+                : `${result.pdf_generated_count}/${result.inserted_count} PDFs generated.`;
+
+            alert(`Success!\n\n${result.message}\n\nPayroll records: ${result.inserted_count}\nPDFs generated: ${result.pdf_generated_count}`);
             window.location.href = '/';
         } else {
             const error = await response.json();

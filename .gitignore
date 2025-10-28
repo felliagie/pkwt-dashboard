@@ -51,6 +51,16 @@ Thumbs.db
 
 # Project specific
 *.zip
+.claude/
 claude/
+.data/
+data/
+.scripts/
+scripts/
 migration.sql
 generate_migration.py
+check_active_contracts_without_signatures.py
+check_database_schema.py
+check_signed_contracts.py
+check_unregistered_contracts.py
+copy_pdf_data.py

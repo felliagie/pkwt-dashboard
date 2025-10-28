@@ -23,6 +23,7 @@ from reportlab.graphics import renderPDF
 import bcrypt
 import uuid
 import requests
+import base64
 
 app = FastAPI()
 
@@ -350,6 +351,36 @@ async def finalize_payroll_campaign(campaign_id: int, request: Request):
         with open(template_path, 'r', encoding='utf-8') as f:
             html_template_base = f.read()
 
+        # Convert images to base64 for PDF generation
+        def image_to_base64(image_path):
+            """Convert image file to base64 data URI"""
+            try:
+                full_path = os.path.join(os.path.dirname(__file__), 'static', 'images', image_path)
+                with open(full_path, 'rb') as img_file:
+                    img_data = img_file.read()
+                    b64_data = base64.b64encode(img_data).decode('utf-8')
+                    # Detect image type from extension
+                    ext = image_path.lower().split('.')[-1]
+                    mime_type = f'image/{ext}' if ext in ['png', 'jpg', 'jpeg', 'gif'] else 'image/png'
+                    return f'data:{mime_type};base64,{b64_data}'
+            except Exception as e:
+                print(f"Error converting image {image_path}: {e}")
+                return ''
+
+        # Replace image paths with base64 data URIs
+        html_template_base = html_template_base.replace(
+            'src="/static/images/top-logo.png"',
+            f'src="{image_to_base64("top-logo.png")}"'
+        )
+        html_template_base = html_template_base.replace(
+            'src="/static/images/sign_logo.png"',
+            f'src="{image_to_base64("sign_logo.png")}"'
+        )
+        html_template_base = html_template_base.replace(
+            'src="/static/images/sign.png"',
+            f'src="{image_to_base64("sign.png")}"'
+        )
+
         # Helper function to format currency
         def format_currency(value):
             if value is None or value == 0 or value == '0':
@@ -377,9 +408,10 @@ async def finalize_payroll_campaign(campaign_id: int, request: Request):
                 }
 
                 if custom_size:
-                    # Custom size: 8.50 x 5.50 inches
+                    # Custom size: 8.50 x 5.50 inches (landscape)
                     pdf_options['width'] = '8.50in'
                     pdf_options['height'] = '5.50in'
+                    pdf_options['landscape'] = False  # Width > height already makes it landscape orientation
                     pdf_options['margin'] = {'top': '0.25in', 'right': '0.25in', 'bottom': '0.25in', 'left': '0.25in'}
                 else:
                     # Default A4 format

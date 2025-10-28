@@ -57,6 +57,8 @@ claude/
 data/
 .scripts/
 scripts/
+mobile-signature/
+mobile-signature-expo/
 migration.sql
 generate_migration.py
 check_active_contracts_without_signatures.py

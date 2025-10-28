@@ -235,6 +235,15 @@ async def payroll_page(session_id: Optional[str] = Cookie(None)):
     with open("static/payroll.html", "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read(), status_code=200)
 
+@app.get("/payroll-base", response_class=HTMLResponse)
+async def payroll_base_page(session_id: Optional[str] = Cookie(None)):
+    user = get_user_from_session(session_id)
+    if not user:
+        return RedirectResponse(url="/login")
+
+    with open("static/payroll-base.html", "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read(), status_code=200)
+
 @app.get("/api/dashboard-stats")
 async def get_dashboard_stats():
     try:

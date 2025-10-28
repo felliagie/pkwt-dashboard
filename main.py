@@ -88,6 +88,11 @@ class LoginRequest(BaseModel):
     password: str
     remember: bool = False
 
+class PayrollCampaignCreate(BaseModel):
+    company: str
+    period: str
+    send_at: date
+
 @app.get("/login", response_class=HTMLResponse)
 async def login_page():
     with open("static/login.html", "r", encoding="utf-8") as f:
@@ -226,13 +231,13 @@ async def contract_preview():
     except Exception as e:
         return HTMLResponse(content=f"<h1>Error: {str(e)}</h1>", status_code=500)
 
-@app.get("/payroll", response_class=HTMLResponse)
-async def payroll_page(session_id: Optional[str] = Cookie(None)):
+@app.get("/payroll-management", response_class=HTMLResponse)
+async def payroll_management_page(session_id: Optional[str] = Cookie(None)):
     user = get_user_from_session(session_id)
     if not user:
         return RedirectResponse(url="/login")
 
-    with open("static/payroll.html", "r", encoding="utf-8") as f:
+    with open("static/payroll-management.html", "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read(), status_code=200)
 
 @app.get("/payroll-base", response_class=HTMLResponse)
@@ -243,6 +248,177 @@ async def payroll_base_page(session_id: Optional[str] = Cookie(None)):
 
     with open("static/payroll-base.html", "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read(), status_code=200)
+
+# Payroll API Endpoints
+@app.post("/api/payroll-campaigns")
+async def create_payroll_campaign(campaign: PayrollCampaignCreate):
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            INSERT INTO contract_pkwt.payroll_campaign (company, created_at, send_at, status)
+            VALUES (%s, CURRENT_TIMESTAMP, %s, 'active')
+            RETURNING payroll_campaign_id
+        """, (campaign.company, campaign.send_at))
+
+        payroll_campaign_id = cursor.fetchone()[0]
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return {"payroll_campaign_id": payroll_campaign_id, "message": "Payroll campaign created successfully"}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"detail": str(e)})
+
+@app.post("/api/payroll-campaigns/upload-payroll")
+async def upload_payroll_data(file: UploadFile = File(...), payroll_campaign_id: int = Form(...)):
+    try:
+        # Read the uploaded file
+        contents = await file.read()
+
+        # Parse Excel file - skip 2 header rows, treat first data row as data (not headers)
+        df = pd.read_excel(io.BytesIO(contents), skiprows=2, header=None)
+
+        # Remove last row (total row)
+        df = df.iloc[:-1]
+
+        # Drop first column (no/sequential number - not needed as list_payroll_id is auto-incremented)
+        df = df.iloc[:, 1:]
+
+        # Set proper column names based on position (0-indexed)
+        # Note: First column (no) is skipped, starting from employee_id
+        column_names = [
+            'employee_id', 'employee_name', 'cost_center', 'area', 'nik',
+            'beneficiary_bank', 'bank_account_no', 'tax_id_no', 'join_date', 'join_date_jmax',
+            'contract_period', 'job_titles', 'sex', 'marital_status', 'tax_code', 'salary_period',
+            'basic_pay', 'basic_pay_bpjs', 'working_days', 'overtime', 'ksd', 'incentive',
+            'end_of_contract', 'tdk', 'potongan', 'tunjangan', 'total_salary', 'remarks',
+            'jkk_0_24_percent', 'jht_3_7_percent', 'jp_2_percent', 'jkm_0_3_percent',
+            'bpjs_kesehatan_4_percent', 'total_insurance', 'total_with_bpjs', 'management_fee',
+            'grand_total', 'jht_2_percent_deduction', 'jp_1_percent_deduction',
+            'bpjs_kesehatan_1_percent_deduction', 'pph21', 'total_deduction',
+            'reim_kesehatan_karyawan', 'thp', 'extra_column'
+        ]
+
+        df.columns = column_names
+
+        # Replace NaN and inf values with None for proper JSON serialization
+        import numpy as np
+        df = df.replace([np.nan, np.inf, -np.inf], None)
+
+        # Convert to list of dictionaries
+        data = df.to_dict('records')
+
+        return {"data": data, "count": len(data)}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"detail": str(e)})
+
+@app.post("/api/payroll-campaigns/{campaign_id}/finalize")
+async def finalize_payroll_campaign(campaign_id: int, request: Request):
+    try:
+        body = await request.json()
+        data = body.get('data', [])
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        inserted_count = 0
+
+        for employee in data:
+            # Insert into list_payroll (list_payroll_id is auto-incremented)
+            cursor.execute("""
+                INSERT INTO contract_pkwt.list_payroll (
+                    payroll_campaign_id, employee_id, employee_name, cost_center, area, nik,
+                    beneficiary_bank, bank_account_no, tax_id_no, join_date, join_date_jmax,
+                    contract_period, job_titles, sex, marital_status, tax_code, salary_period,
+                    basic_pay, basic_pay_bpjs, working_days, overtime, ksd, incentive,
+                    end_of_contract, tdk, potongan, tunjangan, total_salary, remarks,
+                    jkk_0_24_percent, jht_3_7_percent, jp_2_percent, jkm_0_3_percent,
+                    bpjs_kesehatan_4_percent, total_insurance, total_with_bpjs, management_fee,
+                    grand_total, jht_2_percent_deduction, jp_1_percent_deduction,
+                    bpjs_kesehatan_1_percent_deduction, pph21, total_deduction,
+                    reim_kesehatan_karyawan, thp, extra_column
+                ) VALUES (
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s,
+                    %s, %s, %s, %s, %s, %s, %s, %s, %s, %s, %s
+                )
+                RETURNING list_payroll_id
+            """, (
+                campaign_id,
+                employee.get('employee_id'),
+                employee.get('employee_name'),
+                employee.get('cost_center'),
+                employee.get('area'),
+                employee.get('nik'),
+                employee.get('beneficiary_bank'),
+                employee.get('bank_account_no'),
+                employee.get('tax_id_no'),
+                employee.get('join_date'),
+                employee.get('join_date_jmax'),
+                employee.get('contract_period'),
+                employee.get('job_titles'),
+                employee.get('sex'),
+                employee.get('marital_status'),
+                employee.get('tax_code'),
+                employee.get('salary_period'),
+                employee.get('basic_pay'),
+                employee.get('basic_pay_bpjs'),
+                employee.get('working_days'),
+                employee.get('overtime'),
+                employee.get('ksd'),
+                employee.get('incentive'),
+                employee.get('end_of_contract'),
+                employee.get('tdk'),
+                employee.get('potongan'),
+                employee.get('tunjangan'),
+                employee.get('total_salary'),
+                employee.get('remarks'),
+                employee.get('jkk_0_24_percent'),
+                employee.get('jht_3_7_percent'),
+                employee.get('jp_2_percent'),
+                employee.get('jkm_0_3_percent'),
+                employee.get('bpjs_kesehatan_4_percent'),
+                employee.get('total_insurance'),
+                employee.get('total_with_bpjs'),
+                employee.get('management_fee'),
+                employee.get('grand_total'),
+                employee.get('jht_2_percent_deduction'),
+                employee.get('jp_1_percent_deduction'),
+                employee.get('bpjs_kesehatan_1_percent_deduction'),
+                employee.get('pph21'),
+                employee.get('total_deduction'),
+                employee.get('reim_kesehatan_karyawan'),
+                employee.get('thp'),
+                employee.get('extra_column')
+            ))
+
+            list_payroll_id = cursor.fetchone()[0]
+
+            # Insert into payroll_status
+            cursor.execute("""
+                INSERT INTO contract_pkwt.payroll_status (
+                    payroll_campaign_id, list_payroll_id, send_status
+                ) VALUES (%s, %s, FALSE)
+            """, (campaign_id, list_payroll_id))
+
+            inserted_count += 1
+
+        # Update payroll campaign with totals
+        cursor.execute("""
+            UPDATE contract_pkwt.payroll_campaign
+            SET pdf_total = %s, pdf_status = 'pending'
+            WHERE payroll_campaign_id = %s
+        """, (inserted_count, campaign_id))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        return {"inserted_count": inserted_count, "message": "Payroll data saved successfully"}
+    except Exception as e:
+        return JSONResponse(status_code=500, content={"detail": str(e)})
 
 @app.get("/api/dashboard-stats")
 async def get_dashboard_stats():

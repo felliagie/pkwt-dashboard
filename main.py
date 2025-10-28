@@ -1,4 +1,5 @@
 from fastapi import FastAPI, Request, HTTPException, UploadFile, File, Form, BackgroundTasks, Response as FastAPIResponse, Cookie
+from fastapi.middleware.cors import CORSMiddleware
 from fastapi.staticfiles import StaticFiles
 from fastapi.responses import HTMLResponse, JSONResponse, Response, RedirectResponse
 import psycopg2
@@ -24,6 +25,15 @@ import uuid
 import requests
 
 app = FastAPI()
+
+# Configure CORS
+app.add_middleware(
+    CORSMiddleware,
+    allow_origins=["http://localhost:1420", "http://127.0.0.1:1420"],  # Tauri dev server
+    allow_credentials=True,
+    allow_methods=["*"],
+    allow_headers=["*"],
+)
 
 app.mount("/static", StaticFiles(directory="static"), name="static")
 
@@ -215,6 +225,15 @@ async def contract_preview():
             return HTMLResponse(content="<h1>No contract found</h1>", status_code=404)
     except Exception as e:
         return HTMLResponse(content=f"<h1>Error: {str(e)}</h1>", status_code=500)
+
+@app.get("/payroll", response_class=HTMLResponse)
+async def payroll_page(session_id: Optional[str] = Cookie(None)):
+    user = get_user_from_session(session_id)
+    if not user:
+        return RedirectResponse(url="/login")
+
+    with open("static/payroll.html", "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read(), status_code=200)
 
 @app.get("/api/dashboard-stats")
 async def get_dashboard_stats():
@@ -1974,6 +1993,96 @@ async def get_signed_contract_pdf(uid: str):
     except Exception as e:
         import traceback
         print(f"Error retrieving signed PDF: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# Mobile signature endpoints - using new_authenticated views
+@app.get("/api/mobile/contract-by-md5/{contract_md5}")
+async def get_contract_by_md5(contract_md5: str):
+    """Get contract details from new_authenticated_list_contract by MD5"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT
+                contract_id,
+                contract_num_detail,
+                name,
+                job_description,
+                location,
+                contract_num_detail_md5
+            FROM public.new_authenticated_list_contract
+            WHERE contract_num_detail_md5 = %s
+        """, (contract_md5,))
+
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if result:
+            return {
+                "contract_id": result[0],
+                "contract_num_detail": result[1],
+                "name": result[2],
+                "job_description": result[3],
+                "location": result[4],
+                "contract_num_detail_md5": result[5],
+                "signed_status": False  # Will be checked separately
+            }
+        else:
+            return JSONResponse(status_code=404, content={"error": "Contract not found"})
+
+    except Exception as e:
+        import traceback
+        print(f"Error retrieving contract by MD5: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/api/mobile/contract-pdf-by-md5/{contract_md5}")
+async def get_contract_pdf_by_md5(contract_md5: str):
+    """Get contract PDF from new_authenticated_pdf_contract by MD5"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # First get contract_id from new_authenticated_list_contract
+        cursor.execute("""
+            SELECT contract_id
+            FROM public.new_authenticated_list_contract
+            WHERE contract_num_detail_md5 = %s
+        """, (contract_md5,))
+
+        contract_result = cursor.fetchone()
+
+        if not contract_result:
+            cursor.close()
+            conn.close()
+            return JSONResponse(status_code=404, content={"error": "Contract not found"})
+
+        contract_id = contract_result[0]
+
+        # Get PDF from new_authenticated_pdf_contract
+        cursor.execute("""
+            SELECT pdf_data
+            FROM public.new_authenticated_pdf_contract
+            WHERE contract_id = %s
+        """, (contract_id,))
+
+        pdf_result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if pdf_result and pdf_result[0]:
+            return Response(content=bytes(pdf_result[0]), media_type="application/pdf")
+        else:
+            return JSONResponse(status_code=404, content={"error": "PDF not found"})
+
+    except Exception as e:
+        import traceback
+        print(f"Error retrieving PDF by MD5: {str(e)}")
         print(f"Traceback: {traceback.format_exc()}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 

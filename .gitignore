@@ -59,6 +59,7 @@ data/
 scripts/
 mobile-signature/
 mobile-signature-expo/
+nul
 migration.sql
 generate_migration.py
 check_active_contracts_without_signatures.py

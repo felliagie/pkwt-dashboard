@@ -1,0 +1,399 @@
+/* Payroll Manager Styles */
+
+/* Payroll Card */
+.payroll-card {
+    position: relative;
+    background: #FFFFFF;
+    border: 1px solid #E5E5E5;
+    border-radius: 12px;
+    padding: 24px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+    overflow: hidden;
+}
+
+.payroll-card::before {
+    content: '';
+    position: absolute;
+    top: 0;
+    left: 0;
+    right: 0;
+    height: 4px;
+    background: linear-gradient(90deg, #8B7FC7 0%, #A594D9 100%);
+    border-radius: 12px 12px 0 0;
+}
+
+.payroll-card:hover {
+    transform: translateY(-2px);
+    box-shadow: 0 8px 20px rgba(139, 127, 199, 0.15);
+    border-color: #8B7FC7;
+}
+
+/* Card Header */
+.card-header {
+    display: flex;
+    justify-content: space-between;
+    align-items: flex-start;
+    margin-bottom: 16px;
+    padding-top: 4px;
+}
+
+.card-title {
+    font-size: 18px;
+    font-weight: 700;
+    color: #1F2937;
+    margin: 0;
+    line-height: 1.4;
+}
+
+.card-subtitle {
+    font-size: 12px;
+    color: #6B7280;
+    margin: 4px 0 0 0;
+    font-weight: 500;
+}
+
+/* Status Badges */
+.status-badge {
+    padding: 4px 12px;
+    border-radius: 6px;
+    font-size: 11px;
+    font-weight: 600;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    white-space: nowrap;
+    flex-shrink: 0;
+}
+
+.status-active {
+    background-color: #E8E4F3;
+    color: #8B7FC7;
+}
+
+.status-inactive {
+    background-color: #F3F4F6;
+    color: #6B7280;
+}
+
+.status-processing {
+    background-color: #FEF3C7;
+    color: #92400E;
+    animation: pulse-badge 2s ease-in-out infinite;
+}
+
+.status-completed {
+    background-color: #D1FAE5;
+    color: #065F46;
+}
+
+.status-ready {
+    background-color: #DBEAFE;
+    color: #1E40AF;
+}
+
+.status-failed {
+    background-color: #FEE2E2;
+    color: #991B1B;
+}
+
+@keyframes pulse-badge {
+    0%, 100% {
+        opacity: 1;
+    }
+    50% {
+        opacity: 0.7;
+    }
+}
+
+/* Card Body */
+.card-body {
+    display: flex;
+    flex-direction: column;
+    gap: 16px;
+}
+
+/* Info Grid */
+.card-info-grid {
+    display: grid;
+    grid-template-columns: 1fr 1fr;
+    gap: 12px;
+}
+
+.card-info-item {
+    display: flex;
+    align-items: flex-start;
+    gap: 8px;
+}
+
+.card-icon {
+    width: 16px;
+    height: 16px;
+    color: #8B7FC7;
+    flex-shrink: 0;
+    margin-top: 2px;
+}
+
+.card-info-label {
+    font-size: 11px;
+    color: #6B7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    font-weight: 600;
+    margin-bottom: 2px;
+}
+
+.card-info-value {
+    font-size: 13px;
+    color: #1F2937;
+    font-weight: 600;
+}
+
+/* Statistics */
+.card-stats {
+    display: flex;
+    justify-content: space-around;
+    padding: 12px 0;
+    border-top: 1px solid #F3F4F6;
+    border-bottom: 1px solid #F3F4F6;
+}
+
+.card-stat {
+    text-align: center;
+}
+
+.card-stat-value {
+    font-size: 20px;
+    font-weight: 700;
+    color: #1F2937;
+    line-height: 1;
+}
+
+.card-stat-label {
+    font-size: 11px;
+    color: #6B7280;
+    text-transform: uppercase;
+    letter-spacing: 0.5px;
+    margin-top: 4px;
+    font-weight: 600;
+}
+
+/* Progress Section */
+.progress-section {
+    margin-top: 8px;
+}
+
+.progress-label {
+    display: flex;
+    justify-content: space-between;
+    align-items: center;
+    margin-bottom: 6px;
+    font-size: 12px;
+    font-weight: 600;
+    color: #4B5563;
+}
+
+.progress-percentage {
+    color: #8B7FC7;
+    font-weight: 700;
+}
+
+.progress-bar-container {
+    width: 100%;
+    height: 8px;
+    background-color: #F3F4F6;
+    border-radius: 4px;
+    overflow: hidden;
+}
+
+.progress-bar {
+    height: 100%;
+    background: linear-gradient(90deg, #10B981 0%, #059669 100%);
+    border-radius: 4px;
+    transition: width 0.3s ease;
+}
+
+.progress-bar-blue {
+    background: linear-gradient(90deg, #8B7FC7 0%, #A594D9 100%);
+}
+
+.progress-bar-animated {
+    animation: progress-shimmer 2s ease-in-out infinite;
+    background: linear-gradient(
+        90deg,
+        #FCD34D 0%,
+        #F59E0B 50%,
+        #FCD34D 100%
+    );
+    background-size: 200% 100%;
+}
+
+@keyframes progress-shimmer {
+    0% {
+        background-position: 200% 0;
+    }
+    100% {
+        background-position: -200% 0;
+    }
+}
+
+/* Card Footer */
+.card-footer {
+    margin-top: 8px;
+    padding-top: 12px;
+    border-top: 1px solid #F3F4F6;
+}
+
+.card-link {
+    color: #8B7FC7;
+    font-size: 14px;
+    font-weight: 600;
+    transition: color 0.2s ease;
+}
+
+.payroll-card:hover .card-link {
+    color: #6D5FA6;
+}
+
+/* Pagination */
+.pagination {
+    display: flex;
+    justify-content: center;
+    align-items: center;
+    gap: 8px;
+}
+
+.page-btn {
+    padding: 8px 14px;
+    border: 1px solid #E5E5E5;
+    background-color: #FFFFFF;
+    color: #4B5563;
+    font-size: 14px;
+    font-weight: 500;
+    border-radius: 8px;
+    cursor: pointer;
+    transition: all 0.2s ease;
+}
+
+.page-btn:hover:not(.disabled) {
+    background-color: #F9FAFB;
+    border-color: #8B7FC7;
+    color: #8B7FC7;
+}
+
+.page-btn.active {
+    background-color: #8B7FC7;
+    color: #FFFFFF;
+    border-color: #8B7FC7;
+}
+
+.page-btn.disabled {
+    opacity: 0.4;
+    cursor: not-allowed;
+}
+
+.page-ellipsis {
+    padding: 8px 4px;
+    color: #9CA3AF;
+    font-weight: 600;
+}
+
+/* Filter Section Enhancements */
+#search-company:focus,
+#filter-status:focus {
+    outline: none;
+    box-shadow: 0 0 0 3px rgba(139, 127, 199, 0.1);
+}
+
+/* Responsive Design */
+@media (max-width: 768px) {
+    .card-info-grid {
+        grid-template-columns: 1fr;
+    }
+
+    .card-stats {
+        flex-direction: column;
+        gap: 12px;
+        align-items: stretch;
+    }
+
+    .card-stat {
+        display: flex;
+        justify-content: space-between;
+        align-items: center;
+        padding: 8px 0;
+        border-bottom: 1px solid #F3F4F6;
+    }
+
+    .card-stat:last-child {
+        border-bottom: none;
+    }
+
+    .card-stat-label {
+        margin-top: 0;
+    }
+
+    .pagination {
+        flex-wrap: wrap;
+    }
+
+    .page-btn {
+        padding: 6px 12px;
+        font-size: 13px;
+    }
+}
+
+@media (max-width: 640px) {
+    .payroll-card {
+        padding: 16px;
+    }
+
+    .card-title {
+        font-size: 16px;
+    }
+
+    .card-header {
+        flex-direction: column;
+        gap: 8px;
+    }
+
+    .status-badge {
+        align-self: flex-start;
+    }
+}
+
+/* Loading and Empty States */
+#loading,
+#empty-state {
+    animation: fadeIn 0.3s ease-in;
+}
+
+@keyframes fadeIn {
+    from {
+        opacity: 0;
+    }
+    to {
+        opacity: 1;
+    }
+}
+
+/* Smooth Transitions */
+* {
+    transition-property: background-color, border-color, color, fill, stroke, opacity, box-shadow, transform;
+}
+
+/* Print Styles */
+@media print {
+    .payroll-card::before {
+        display: none;
+    }
+
+    .payroll-card {
+        break-inside: avoid;
+        box-shadow: none;
+        border: 1px solid #E5E5E5;
+    }
+
+    .card-link {
+        display: none;
+    }
+}

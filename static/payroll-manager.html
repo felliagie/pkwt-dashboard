@@ -6,6 +6,7 @@
     <title>Payroll Manager - PKWT Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
     <link rel="stylesheet" href="/static/css/styles.css">
+    <link rel="stylesheet" href="/static/css/payroll-manager.css">
 </head>
 <body class="bg-gray-50">
     <!-- Navbar -->
@@ -86,6 +87,54 @@
             <p class="mt-2 text-gray-600 text-lg">Manage and monitor your payroll campaigns</p>
         </div>
 
+        <!-- Filters Section -->
+        <div class="mb-6 bg-white rounded-lg shadow-sm border border-gray-200 p-4">
+            <div class="grid grid-cols-1 md:grid-cols-3 gap-4">
+                <!-- Search Box -->
+                <div>
+                    <label for="search-company" class="block text-sm font-medium text-gray-700 mb-1">Search Company</label>
+                    <input
+                        type="text"
+                        id="search-company"
+                        placeholder="Type to search..."
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    >
+                </div>
+
+                <!-- Status Filter -->
+                <div>
+                    <label for="filter-status" class="block text-sm font-medium text-gray-700 mb-1">Status Filter</label>
+                    <select
+                        id="filter-status"
+                        class="w-full px-4 py-2 border border-gray-300 rounded-lg focus:ring-2 focus:ring-purple-500 focus:border-transparent transition-all"
+                    >
+                        <option value="all">All Campaigns</option>
+                        <option value="active">Active Only</option>
+                        <option value="inactive">Inactive Only</option>
+                        <option value="processing">Processing</option>
+                        <option value="completed">Completed</option>
+                    </select>
+                </div>
+
+                <!-- Clear Filters Button -->
+                <div class="flex items-end">
+                    <button
+                        id="clear-filters"
+                        class="w-full px-4 py-2 bg-gray-100 hover:bg-gray-200 text-gray-700 font-medium rounded-lg transition-colors"
+                    >
+                        Clear Filters
+                    </button>
+                </div>
+            </div>
+
+            <!-- Results Summary -->
+            <div class="mt-3 pt-3 border-t border-gray-200">
+                <p class="text-sm text-gray-600" id="results-summary">
+                    Showing <span class="font-semibold" id="showing-count">0</span> of <span class="font-semibold" id="total-count">0</span> payroll campaigns
+                </p>
+            </div>
+        </div>
+
         <!-- Payroll Cards Container -->
         <div id="payrolls-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
             <!-- Payroll cards will be populated by JavaScript -->
@@ -153,78 +202,7 @@
         </div>
     </div>
 
-    <script>
-        // Logout function
-        function logout() {
-            document.cookie = 'session_id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
-            window.location.href = '/login';
-        }
-
-        // Fetch and display payroll campaigns
-        async function loadPayrollCampaigns() {
-            try {
-                const response = await fetch('/api/payroll-campaigns');
-                const payrolls = await response.json();
-
-                const container = document.getElementById('payrolls-container');
-                const loading = document.getElementById('loading');
-                const emptyState = document.getElementById('empty-state');
-
-                loading.classList.add('hidden');
-
-                if (!payrolls || payrolls.length === 0) {
-                    emptyState.classList.remove('hidden');
-                    return;
-                }
-
-                container.innerHTML = payrolls.map(payroll => `
-                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
-                        <div class="flex justify-between items-start mb-4">
-                            <h3 class="text-lg font-semibold text-gray-900">${payroll.name || 'Untitled Payroll'}</h3>
-                            <span class="px-3 py-1 text-xs font-medium rounded-full ${
-                                payroll.status === 'completed' ? 'bg-green-100 text-green-800' :
-                                payroll.status === 'active' ? 'bg-blue-100 text-blue-800' :
-                                'bg-gray-100 text-gray-800'
-                            }">
-                                ${payroll.status || 'pending'}
-                            </span>
-                        </div>
-                        <div class="space-y-2 text-sm text-gray-600">
-                            <p><strong>Campaign ID:</strong> ${payroll.payroll_campaign_id || 'N/A'}</p>
-                            <p><strong>Created:</strong> ${payroll.created_at ? new Date(payroll.created_at).toLocaleDateString() : 'N/A'}</p>
-                            ${payroll.description ? `<p class="mt-2">${payroll.description}</p>` : ''}
-                        </div>
-                        <div class="mt-4 pt-4 border-t border-gray-200">
-                            <button onclick="viewPayrollDetails(${payroll.payroll_campaign_id})" class="text-purple-600 hover:text-purple-700 font-medium text-sm">
-                                View Details →
-                            </button>
-                        </div>
-                    </div>
-                `).join('');
-
-            } catch (error) {
-                console.error('Error loading payroll campaigns:', error);
-                document.getElementById('loading').innerHTML = `
-                    <div class="text-center py-12">
-                        <p class="text-red-600">Error loading payroll campaigns. Please try again.</p>
-                    </div>
-                `;
-            }
-        }
-
-        function viewPayrollDetails(payrollId) {
-            // Navigate to payroll preview page
-            window.location.href = `/payroll-preview/${payrollId}`;
-        }
-
-        // Modal close handlers
-        document.getElementById('close-payroll-details')?.addEventListener('click', () => {
-            document.getElementById('payroll-details-modal').classList.add('hidden');
-        });
-
-        // Load payrolls on page load
-        document.addEventListener('DOMContentLoaded', loadPayrollCampaigns);
-    </script>
     <script src="/static/js/nav.js"></script>
+    <script src="/static/js/payroll-manager.js"></script>
 </body>
 </html>

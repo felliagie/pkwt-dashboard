@@ -522,10 +522,17 @@ def generate_payroll_pdfs_background(campaign_id: int):
                 return pdf_bytes
 
         # Get all payroll records for this campaign with birthdate from list_contract
+        # Use DISTINCT ON to ensure only one contract per employee (avoids duplicate processing)
         cursor.execute("""
-            SELECT lp.*, lc.birthdate
+            SELECT DISTINCT ON (lp.list_payroll_id) lp.*, lc.birthdate
             FROM contract_pkwt.list_payroll lp
-            LEFT JOIN contract_pkwt.list_contract lc ON lp.nik = lc.nik AND lc.contract_id >= 138
+            LEFT JOIN LATERAL (
+                SELECT birthdate
+                FROM contract_pkwt.list_contract
+                WHERE nik = lp.nik
+                ORDER BY contract_id DESC
+                LIMIT 1
+            ) lc ON true
             WHERE lp.payroll_campaign_id = %s
             ORDER BY lp.list_payroll_id
         """, (campaign_id,))

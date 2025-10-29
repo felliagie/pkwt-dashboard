@@ -325,7 +325,7 @@ async def upload_payroll_data(file: UploadFile = File(...), payroll_campaign_id:
         return JSONResponse(status_code=500, content={"detail": str(e)})
 
 @app.post("/api/payroll-campaigns/{campaign_id}/finalize")
-async def finalize_payroll_campaign(campaign_id: int, request: Request):
+async def finalize_payroll_campaign(campaign_id: int, request: Request, background_tasks: BackgroundTasks):
     try:
         body = await request.json()
         data = body.get('data', [])
@@ -333,97 +333,7 @@ async def finalize_payroll_campaign(campaign_id: int, request: Request):
         conn = get_db_connection()
         cursor = conn.cursor()
 
-        # Get campaign details for template
-        cursor.execute("""
-            SELECT company, send_at
-            FROM contract_pkwt.payroll_campaign
-            WHERE payroll_campaign_id = %s
-        """, (campaign_id,))
-        campaign_result = cursor.fetchone()
-        company_name = campaign_result[0] if campaign_result else "PT. Mandom Indonesia"
-        payment_date = campaign_result[1] if campaign_result else datetime.now()
-
-        # Format payment date
-        formatted_date = payment_date.strftime('%d-%b-%y') if isinstance(payment_date, datetime) else str(payment_date)
-
-        # Load payroll slip HTML template
-        template_path = os.path.join(os.path.dirname(__file__), 'static', 'payroll-base.html')
-        with open(template_path, 'r', encoding='utf-8') as f:
-            html_template_base = f.read()
-
-        # Convert images to base64 for PDF generation
-        def image_to_base64(image_path):
-            """Convert image file to base64 data URI"""
-            try:
-                full_path = os.path.join(os.path.dirname(__file__), 'static', 'images', image_path)
-                with open(full_path, 'rb') as img_file:
-                    img_data = img_file.read()
-                    b64_data = base64.b64encode(img_data).decode('utf-8')
-                    # Detect image type from extension
-                    ext = image_path.lower().split('.')[-1]
-                    mime_type = f'image/{ext}' if ext in ['png', 'jpg', 'jpeg', 'gif'] else 'image/png'
-                    return f'data:{mime_type};base64,{b64_data}'
-            except Exception as e:
-                print(f"Error converting image {image_path}: {e}")
-                return ''
-
-        # Replace image paths with base64 data URIs
-        html_template_base = html_template_base.replace(
-            'src="/static/images/top-logo.png"',
-            f'src="{image_to_base64("top-logo.png")}"'
-        )
-        html_template_base = html_template_base.replace(
-            'src="/static/images/sign_logo.png"',
-            f'src="{image_to_base64("sign_logo.png")}"'
-        )
-        html_template_base = html_template_base.replace(
-            'src="/static/images/sign.png"',
-            f'src="{image_to_base64("sign.png")}"'
-        )
-
-        # Helper function to format currency
-        def format_currency(value):
-            if value is None or value == 0 or value == '0':
-                return '-'
-            rounded = round(float(value))
-            return 'Rp ' + '{:,}'.format(rounded).replace(',', '.')
-
-        # Helper function to display value
-        def display_value(value):
-            if value is None or value == '':
-                return '-'
-            return str(value)
-
-        # PDF generation function
-        async def generate_payroll_pdf_with_playwright(html_content, employee_name='Employee', custom_size=False):
-            """Generate PDF from HTML using Playwright"""
-            async with async_playwright() as p:
-                browser = await p.chromium.launch()
-                page = await browser.new_page()
-                await page.set_content(html_content, wait_until='networkidle')
-
-                pdf_options = {
-                    'print_background': True,
-                    'display_header_footer': False
-                }
-
-                if custom_size:
-                    # Custom size: 8.50 x 5.50 inches (landscape)
-                    pdf_options['width'] = '8.50in'
-                    pdf_options['height'] = '5.50in'
-                    pdf_options['landscape'] = False  # Width > height already makes it landscape orientation
-                    pdf_options['margin'] = {'top': '0.25in', 'right': '0.25in', 'bottom': '0.25in', 'left': '0.25in'}
-                else:
-                    # Default A4 format
-                    pdf_options['format'] = 'A4'
-                    pdf_options['margin'] = {'top': '1cm', 'right': '1cm', 'bottom': '1cm', 'left': '1cm'}
-
-                pdf_bytes = await page.pdf(**pdf_options)
-                await browser.close()
-                return pdf_bytes
-
         inserted_count = 0
-        pdf_generated_count = 0
 
         for employee in data:
             # Insert into list_payroll (list_payroll_id is auto-incremented)
@@ -496,13 +406,139 @@ async def finalize_payroll_campaign(campaign_id: int, request: Request):
 
             list_payroll_id = cursor.fetchone()[0]
 
-            # Generate PDF for this employee
+            # Create payroll_status entry without PDF (will be generated in background)
+            cursor.execute("""
+                INSERT INTO contract_pkwt.payroll_status (
+                    payroll_campaign_id, list_payroll_id, send_status
+                ) VALUES (%s, %s, FALSE)
+            """, (campaign_id, list_payroll_id))
+
+            inserted_count += 1
+
+        # Update payroll campaign with totals and set status to processing
+        cursor.execute("""
+            UPDATE contract_pkwt.payroll_campaign
+            SET pdf_total = %s, pdf_generated = 0, pdf_status = 'processing'
+            WHERE payroll_campaign_id = %s
+        """, (inserted_count, campaign_id))
+
+        conn.commit()
+        cursor.close()
+        conn.close()
+
+        # Schedule background PDF generation
+        background_tasks.add_task(generate_payroll_pdfs_background, campaign_id)
+
+        return {
+            "inserted_count": inserted_count,
+            "message": f"Payroll data saved successfully. {inserted_count} records created. PDFs are being generated in the background."
+        }
+    except Exception as e:
+        import traceback
+        print("ERROR in finalize_payroll_campaign:")
+        print(traceback.format_exc())
+        return JSONResponse(status_code=500, content={"detail": str(e)})
+
+def generate_payroll_pdfs_background(campaign_id: int):
+    """Background task to generate password-protected PDFs for all payroll records in a campaign"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Get campaign details
+        cursor.execute("""
+            SELECT company, send_at
+            FROM contract_pkwt.payroll_campaign
+            WHERE payroll_campaign_id = %s
+        """, (campaign_id,))
+        campaign_result = cursor.fetchone()
+        if not campaign_result:
+            print(f"Campaign {campaign_id} not found")
+            return
+
+        company_name = campaign_result[0]
+        payment_date = campaign_result[1]
+        formatted_date = payment_date.strftime('%d-%b-%y') if payment_date else ''
+
+        # Load and prepare HTML template
+        template_path = os.path.join(os.path.dirname(__file__), 'static', 'payroll-base.html')
+        with open(template_path, 'r', encoding='utf-8') as f:
+            html_template_base = f.read()
+
+        # Convert images to base64
+        def image_to_base64(image_path):
             try:
+                full_path = os.path.join(os.path.dirname(__file__), 'static', 'images', image_path)
+                with open(full_path, 'rb') as img_file:
+                    img_data = img_file.read()
+                    b64_data = base64.b64encode(img_data).decode('utf-8')
+                    ext = image_path.lower().split('.')[-1]
+                    mime_type = f'image/{ext}' if ext in ['png', 'jpg', 'jpeg', 'gif'] else 'image/png'
+                    return f'data:{mime_type};base64,{b64_data}'
+            except Exception as e:
+                print(f"Error converting image {image_path}: {e}")
+                return ''
+
+        html_template_base = html_template_base.replace('src="/static/images/top-logo.png"', f'src="{image_to_base64("top-logo.png")}"')
+        html_template_base = html_template_base.replace('src="/static/images/sign_logo.png"', f'src="{image_to_base64("sign_logo.png")}"')
+        html_template_base = html_template_base.replace('src="/static/images/sign.png"', f'src="{image_to_base64("sign.png")}"')
+
+        # Helper functions
+        def format_currency(value):
+            if value is None or value == 0 or value == '0':
+                return '-'
+            rounded = round(float(value))
+            return 'Rp ' + '{:,}'.format(rounded).replace(',', '.')
+
+        def display_value(value):
+            if value is None or value == '':
+                return '-'
+            return str(value)
+
+        # PDF generation function
+        async def generate_pdf_async(html_content, employee_name='Employee'):
+            async with async_playwright() as p:
+                browser = await p.chromium.launch()
+                page = await browser.new_page()
+                await page.set_content(html_content, wait_until='networkidle')
+                pdf_bytes = await page.pdf(
+                    width='8.50in',
+                    height='10.80in',
+                    landscape=False,
+                    margin={'top': '0.25in', 'right': '0.25in', 'bottom': '0.25in', 'left': '0.25in'},
+                    print_background=True,
+                    display_header_footer=False
+                )
+                await browser.close()
+                return pdf_bytes
+
+        # Get all payroll records for this campaign with birthdate from list_contract
+        cursor.execute("""
+            SELECT lp.*, lc.birthdate
+            FROM contract_pkwt.list_payroll lp
+            LEFT JOIN contract_pkwt.list_contract lc ON lp.nik = lc.nik AND lc.contract_id >= 138
+            WHERE lp.payroll_campaign_id = %s
+            ORDER BY lp.list_payroll_id
+        """, (campaign_id,))
+
+        columns = [desc[0] for desc in cursor.description]
+        payroll_records = cursor.fetchall()
+
+        pdf_generated_count = 0
+
+        for record in payroll_records:
+            try:
+                # Convert row to dictionary
+                employee = dict(zip(columns, record))
+                list_payroll_id = employee['list_payroll_id']
+                employee_name = employee.get('employee_name', 'Employee')
+                birthdate = employee.get('birthdate')
+
+                # Prepare HTML for this employee
                 html_template = html_template_base
 
-                # Replace employee data placeholders
                 bank_display = display_value(employee.get('beneficiary_bank')) + ' (' + display_value(employee.get('bank_account_no')) + ')'
-                date_display = payment_date.strftime('%B %d, %Y') if isinstance(payment_date, datetime) else str(payment_date)
+                date_display = payment_date.strftime('%B %d, %Y') if payment_date else ''
 
                 replacements = {
                     'Jein Lumempouw': display_value(employee.get('employee_name')),
@@ -524,95 +560,133 @@ async def finalize_payroll_campaign(campaign_id: int, request: Request):
                     'October 31, 2025': date_display
                 }
 
-                # Apply replacements
                 for old_val, new_val in replacements.items():
                     html_template = html_template.replace(old_val, new_val)
 
-                # Handle KSD, TDK, Tunjangan Pajak, PPH21 fields that may be null/0
+                # Handle nullable fields
                 ksd_val = employee.get('ksd')
-                tdk_val = employee.get('tdk')
-                tunjangan_val = employee.get('tunjangan')
-                pph21_val = employee.get('pph21')
-                bpjs_kesehatan_val = employee.get('bpjs_kesehatan_1_percent_deduction')
-
-                # Replace KSD values (both occurrences)
                 ksd_display = format_currency(ksd_val) if ksd_val and ksd_val != 0 else '-'
                 ksd_class = "text-gray-900 font-medium" if ksd_val and ksd_val != 0 else "text-gray-400"
-                ksd_replacement = '<td class="px-4 py-2 text-right ' + ksd_class + '">' + ksd_display + '</td>'
-                html_template = html_template.replace('<td class="px-4 py-2 text-right text-gray-400">-</td>', ksd_replacement, 1)
+                html_template = html_template.replace('<td class="px-4 py-2 text-right text-gray-400">-</td>', f'<td class="px-4 py-2 text-right {ksd_class}">{ksd_display}</td>', 1)
 
-                # Replace TDK
+                tdk_val = employee.get('tdk')
                 tdk_display = format_currency(tdk_val) if tdk_val and tdk_val != 0 else '-'
                 tdk_class = "text-gray-900 font-medium" if tdk_val and tdk_val != 0 else "text-gray-400"
-                tdk_replacement = '<td class="px-4 py-2 text-right ' + tdk_class + '">' + tdk_display + '</td>'
-                html_template = html_template.replace('<td class="px-4 py-2 text-right text-gray-400">-</td>', tdk_replacement, 1)
+                html_template = html_template.replace('<td class="px-4 py-2 text-right text-gray-400">-</td>', f'<td class="px-4 py-2 text-right {tdk_class}">{tdk_display}</td>', 1)
 
-                # Replace Tunjangan Pajak
+                tunjangan_val = employee.get('tunjangan')
                 tunjangan_display = format_currency(tunjangan_val) if tunjangan_val and tunjangan_val != 0 else '-'
                 tunjangan_class = "text-gray-900 font-medium" if tunjangan_val and tunjangan_val != 0 else "text-gray-400"
-                tunjangan_replacement = '<td class="px-4 py-2 text-right ' + tunjangan_class + '">' + tunjangan_display + '</td>'
-                html_template = html_template.replace('<td class="px-4 py-2 text-right text-gray-400">-</td>', tunjangan_replacement, 1)
+                html_template = html_template.replace('<td class="px-4 py-2 text-right text-gray-400">-</td>', f'<td class="px-4 py-2 text-right {tunjangan_class}">{tunjangan_display}</td>', 1)
 
-                # Replace PPH21
+                pph21_val = employee.get('pph21')
                 pph21_display = format_currency(pph21_val) if pph21_val and pph21_val != 0 else '-'
                 pph21_class = "text-gray-900 font-medium" if pph21_val and pph21_val != 0 else "text-gray-400"
-                pph21_replacement = '<td class="px-4 py-2 text-right ' + pph21_class + '">' + pph21_display + '</td>'
-                html_template = html_template.replace('<td class="px-4 py-2 text-right text-gray-400">-</td>', pph21_replacement, 1)
+                html_template = html_template.replace('<td class="px-4 py-2 text-right text-gray-400">-</td>', f'<td class="px-4 py-2 text-right {pph21_class}">{pph21_display}</td>', 1)
 
-                # Replace BPJS Kesehatan 1%
+                bpjs_kesehatan_val = employee.get('bpjs_kesehatan_1_percent_deduction')
                 html_template = html_template.replace('Rp 36.170', format_currency(bpjs_kesehatan_val), 1)
 
-                # Remove action buttons for PDF
+                # Remove action buttons
                 html_template = html_template.replace('<div class="mb-6 flex gap-3 justify-end print:hidden">', '<div style="display:none;">')
 
-                # Generate PDF with custom size (8.50 x 5.50 inches)
-                employee_name = employee.get('employee_name', 'Employee')
-                pdf_bytes = await generate_payroll_pdf_with_playwright(html_template, employee_name, custom_size=True)
+                # Generate PDF
+                pdf_bytes = asyncio.run(generate_pdf_async(html_template, employee_name))
 
-                # Insert into payroll_status with PDF data
+                # Apply password protection
+                pdf_reader = PdfReader(io.BytesIO(pdf_bytes))
+                pdf_writer = PdfWriter()
+
+                for page in pdf_reader.pages:
+                    pdf_writer.add_page(page)
+
+                # Generate password from birthdate (DDMMYY format)
+                password = ''
+                if birthdate:
+                    password = birthdate.strftime('%d%m%y')
+                else:
+                    # Fallback: use default password if birthdate not found
+                    password = '010101'
+                    print(f"Warning: No birthdate found for {employee_name}, using default password")
+
+                # Encrypt PDF
+                pdf_writer.encrypt(user_password=password, owner_password=password)
+
+                # Set PDF metadata
+                salary_period = employee.get('salary_period')
+                period_str = salary_period.strftime('%b%y') if salary_period else 'Unknown'
+                safe_employee_name = "".join(c if c.isalnum() or c in (' ', '-', '_') else '_' for c in employee_name)
+                pdf_title = f"Payroll_{safe_employee_name}_{period_str}"
+
+                pdf_writer.add_metadata({
+                    '/Title': pdf_title,
+                    '/Author': 'JMax Indonesia',
+                    '/Subject': f'Payroll Slip for {employee_name}',
+                    '/Creator': 'PKWT Dashboard'
+                })
+
+                # Write encrypted PDF to bytes
+                output_pdf = io.BytesIO()
+                pdf_writer.write(output_pdf)
+                encrypted_pdf_bytes = output_pdf.getvalue()
+
+                # Update payroll_status with encrypted PDF
                 cursor.execute("""
-                    INSERT INTO contract_pkwt.payroll_status (
-                        payroll_campaign_id, list_payroll_id, send_status, pdf_data
-                    ) VALUES (%s, %s, FALSE, %s)
-                """, (campaign_id, list_payroll_id, pdf_bytes))
+                    UPDATE contract_pkwt.payroll_status
+                    SET pdf_data = %s, updated_at = CURRENT_TIMESTAMP
+                    WHERE list_payroll_id = %s
+                """, (encrypted_pdf_bytes, list_payroll_id))
 
                 pdf_generated_count += 1
-                print(f"Generated PDF for {employee_name}")
+
+                # Update progress incrementally
+                cursor.execute("""
+                    UPDATE contract_pkwt.payroll_campaign
+                    SET pdf_generated = %s
+                    WHERE payroll_campaign_id = %s
+                """, (pdf_generated_count, campaign_id))
+                conn.commit()
+
+                print(f"Generated password-protected PDF for {employee_name} (password: {password})")
 
             except Exception as pdf_error:
-                print(f"Error generating PDF for {employee.get('employee_name')}: {pdf_error}")
-                # Still insert payroll_status without PDF
-                cursor.execute("""
-                    INSERT INTO contract_pkwt.payroll_status (
-                        payroll_campaign_id, list_payroll_id, send_status
-                    ) VALUES (%s, %s, FALSE)
-                """, (campaign_id, list_payroll_id))
+                import traceback
+                print(f"Error generating PDF for list_payroll_id {employee.get('list_payroll_id')}: {pdf_error}")
+                print(traceback.format_exc())
+                continue
 
-            inserted_count += 1
-
-        # Update payroll campaign with totals
+        # Mark campaign as completed
         cursor.execute("""
             UPDATE contract_pkwt.payroll_campaign
-            SET pdf_total = %s, pdf_generated = %s, pdf_status = %s
+            SET pdf_status = 'completed'
             WHERE payroll_campaign_id = %s
-        """, (inserted_count, pdf_generated_count, 'completed' if pdf_generated_count == inserted_count else 'partial', campaign_id))
-
+        """, (campaign_id,))
         conn.commit()
+
         cursor.close()
         conn.close()
 
-        message = "Payroll data saved successfully. " + str(pdf_generated_count) + "/" + str(inserted_count) + " PDFs generated."
+        print(f"Background PDF generation completed for campaign {campaign_id}. Generated {pdf_generated_count} PDFs.")
 
-        return {
-            "inserted_count": inserted_count,
-            "pdf_generated_count": pdf_generated_count,
-            "message": message
-        }
     except Exception as e:
         import traceback
-        print("ERROR in finalize_payroll_campaign:")
+        print(f"ERROR in generate_payroll_pdfs_background for campaign {campaign_id}:")
         print(traceback.format_exc())
-        return JSONResponse(status_code=500, content={"detail": str(e)})
+
+        # Mark campaign as failed
+        try:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+            cursor.execute("""
+                UPDATE contract_pkwt.payroll_campaign
+                SET pdf_status = 'failed'
+                WHERE payroll_campaign_id = %s
+            """, (campaign_id,))
+            conn.commit()
+            cursor.close()
+            conn.close()
+        except:
+            pass
 
 @app.get("/api/payroll/{list_payroll_id}")
 async def get_payroll_data(list_payroll_id: int, session_id: Optional[str] = Cookie(None)):
@@ -672,7 +746,7 @@ async def get_payroll_pdf(list_payroll_id: int, session_id: Optional[str] = Cook
         cursor = conn.cursor()
 
         cursor.execute("""
-            SELECT ps.pdf_data, lp.employee_name
+            SELECT ps.pdf_data, lp.employee_name, lp.salary_period
             FROM contract_pkwt.payroll_status ps
             JOIN contract_pkwt.list_payroll lp ON ps.list_payroll_id = lp.list_payroll_id
             WHERE ps.list_payroll_id = %s
@@ -686,10 +760,12 @@ async def get_payroll_pdf(list_payroll_id: int, session_id: Optional[str] = Cook
 
         pdf_data = bytes(row[0])
         employee_name = row[1] or 'Employee'
+        salary_period = row[2]
 
-        # Clean employee name for filename
+        # Create filename: Payroll_{employee_name}_{period}
         safe_name = "".join(c if c.isalnum() or c in (' ', '-', '_') else '_' for c in employee_name)
-        filename = f"Payslip_{safe_name}.pdf"
+        period_str = salary_period.strftime('%b%y') if salary_period else 'Unknown'
+        filename = f"Payroll_{safe_name}_{period_str}.pdf"
 
         return Response(
             content=pdf_data,
@@ -1535,6 +1611,58 @@ async def populate_contract_status(campaign_id: int):
         import traceback
         print(f"Error in populate_contract_status: {str(e)}")
         print(f"Traceback: {traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+@app.get("/api/payroll-campaigns-with-stats")
+async def get_payroll_campaigns_with_stats():
+    """Get all payroll campaigns with statistics and PDF generation progress"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Get payroll campaigns with statistics
+        cursor.execute("""
+            SELECT
+                pc.payroll_campaign_id,
+                pc.company,
+                pc.created_at,
+                pc.send_at,
+                pc.status,
+                pc.pdf_total,
+                pc.pdf_generated,
+                pc.pdf_status,
+                COUNT(lp.list_payroll_id) as total_employees,
+                COUNT(CASE WHEN ps.send_status = TRUE THEN 1 END) as sent_count
+            FROM contract_pkwt.payroll_campaign pc
+            LEFT JOIN contract_pkwt.list_payroll lp ON pc.payroll_campaign_id = lp.payroll_campaign_id
+            LEFT JOIN contract_pkwt.payroll_status ps ON lp.list_payroll_id = ps.list_payroll_id
+            GROUP BY pc.payroll_campaign_id, pc.company, pc.created_at, pc.send_at, pc.status,
+                     pc.pdf_total, pc.pdf_generated, pc.pdf_status
+            ORDER BY pc.created_at DESC
+        """)
+
+        campaigns = cursor.fetchall()
+        column_names = [desc[0] for desc in cursor.description]
+
+        # Convert to list of dictionaries
+        result = []
+        for campaign in campaigns:
+            campaign_dict = dict(zip(column_names, campaign))
+            # Convert dates to strings
+            if campaign_dict.get('created_at'):
+                campaign_dict['created_at'] = campaign_dict['created_at'].isoformat()
+            if campaign_dict.get('send_at'):
+                campaign_dict['send_at'] = campaign_dict['send_at'].isoformat()
+            result.append(campaign_dict)
+
+        cursor.close()
+        conn.close()
+
+        return result
+    except Exception as e:
+        import traceback
+        print("ERROR in get_payroll_campaigns_with_stats:")
+        print(traceback.format_exc())
         return JSONResponse(status_code=500, content={"error": str(e)})
 
 @app.get("/api/campaigns-with-stats")

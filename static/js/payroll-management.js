@@ -3,6 +3,7 @@
 let currentStep = 1;
 let payrollCampaignId = null;
 let uploadedData = [];
+let progressPollingInterval = null;
 
 // Logout function
 function logout() {
@@ -471,12 +472,12 @@ document.getElementById('confirm-btn').addEventListener('click', async () => {
 
         if (response.ok) {
             const result = await response.json();
-            const pdfStatus = result.pdf_generated_count === result.inserted_count
-                ? 'All PDFs generated successfully!'
-                : `${result.pdf_generated_count}/${result.inserted_count} PDFs generated.`;
 
-            alert(`Success!\n\n${result.message}\n\nPayroll records: ${result.inserted_count}\nPDFs generated: ${result.pdf_generated_count}`);
-            window.location.href = '/';
+            // Start progress monitoring
+            btn.innerHTML = originalText;
+            btn.disabled = false;
+
+            startProgressMonitoring();
         } else {
             const error = await response.json();
             alert('Error: ' + (error.detail || 'Failed to save data'));
@@ -489,6 +490,115 @@ document.getElementById('confirm-btn').addEventListener('click', async () => {
         btn.innerHTML = originalText;
     }
 });
+
+// Progress monitoring functions
+async function startProgressMonitoring() {
+    if (progressPollingInterval) {
+        clearInterval(progressPollingInterval);
+    }
+
+    // Show progress modal
+    showProgressModal();
+
+    // Start polling for progress
+    progressPollingInterval = setInterval(async () => {
+        await updateProgress();
+    }, 2000); // Poll every 2 seconds
+
+    // Initial update
+    await updateProgress();
+}
+
+async function updateProgress() {
+    try {
+        const response = await fetch('/api/payroll-campaigns-with-stats');
+        if (!response.ok) return;
+
+        const campaigns = await response.json();
+        const currentCampaign = campaigns.find(c => c.payroll_campaign_id === payrollCampaignId);
+
+        if (!currentCampaign) return;
+
+        const pdfStatus = currentCampaign.pdf_status || 'pending';
+        const pdfTotal = currentCampaign.pdf_total || 0;
+        const pdfGenerated = currentCampaign.pdf_generated || 0;
+        const percentage = pdfTotal > 0 ? Math.round((pdfGenerated / pdfTotal) * 100) : 0;
+
+        // Update progress UI
+        const progressBar = document.getElementById('pdf-progress-bar');
+        const progressText = document.getElementById('pdf-progress-text');
+        const progressPercentage = document.getElementById('pdf-progress-percentage');
+        const progressCount = document.getElementById('pdf-progress-count');
+
+        if (progressBar) {
+            progressBar.style.width = `${percentage}%`;
+        }
+
+        if (progressPercentage) {
+            progressPercentage.textContent = `${percentage}%`;
+        }
+
+        if (progressCount) {
+            progressCount.textContent = `${pdfGenerated} out of ${pdfTotal} PDFs generated`;
+        }
+
+        // Update status text
+        if (progressText) {
+            switch (pdfStatus) {
+                case 'processing':
+                    progressText.textContent = 'Generating PDFs...';
+                    progressText.className = 'text-blue-600 font-semibold';
+                    break;
+                case 'completed':
+                    progressText.textContent = 'PDFs Ready!';
+                    progressText.className = 'text-green-600 font-semibold';
+                    // Stop polling
+                    stopProgressMonitoring();
+                    // Show completion message
+                    setTimeout(() => {
+                        hideProgressModal();
+                        alert(`Success! All ${pdfTotal} payroll PDFs have been generated.\n\nYou can now view and download them from the payroll management page.`);
+                        window.location.href = '/payroll-management';
+                    }, 1500);
+                    break;
+                case 'failed':
+                    progressText.textContent = 'PDF Generation Failed';
+                    progressText.className = 'text-red-600 font-semibold';
+                    stopProgressMonitoring();
+                    hideProgressModal();
+                    alert('Error: PDF generation failed. Please try again or contact support.');
+                    break;
+                default:
+                    progressText.textContent = 'Pending PDF Generation';
+                    progressText.className = 'text-gray-500 font-semibold';
+            }
+        }
+
+    } catch (error) {
+        console.error('Error updating progress:', error);
+    }
+}
+
+function stopProgressMonitoring() {
+    if (progressPollingInterval) {
+        clearInterval(progressPollingInterval);
+        progressPollingInterval = null;
+    }
+}
+
+function showProgressModal() {
+    const modal = document.getElementById('progress-modal');
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
+
+function hideProgressModal() {
+    const modal = document.getElementById('progress-modal');
+    if (modal) {
+        modal.classList.add('hidden');
+    }
+}
 
 // Initialize
 document.addEventListener('DOMContentLoaded', () => {

@@ -80,7 +80,8 @@ def get_user_from_session(session_id: str) -> Optional[Dict]:
 
 # Pydantic models
 class CampaignCreate(BaseModel):
-    company: str
+    company_name: str
+    company_detail: Optional[str] = None
     send_date: date
     due_date: date
 
@@ -1038,7 +1039,8 @@ async def get_campaigns_list():
         cursor.execute("""
             SELECT
                 c.campaign_id,
-                c.company,
+                c.company_name,
+                c.company_detail,
                 c.created_at,
                 c.send_at,
                 c.due_date,
@@ -1047,7 +1049,7 @@ async def get_campaigns_list():
             FROM contract_pkwt.campaign c
             LEFT JOIN contract_pkwt.list_contract lc ON c.campaign_id = lc.campaign_id
             LEFT JOIN contract_pkwt.contract_status cs ON lc.contract_id = cs.contract_id
-            GROUP BY c.campaign_id, c.company, c.created_at, c.send_at, c.due_date
+            GROUP BY c.campaign_id, c.company_name, c.company_detail, c.created_at, c.send_at, c.due_date
             ORDER BY c.created_at DESC
         """)
 
@@ -1105,10 +1107,10 @@ async def create_campaign(campaign: CampaignCreate):
 
         # Insert campaign
         cursor.execute("""
-            INSERT INTO contract_pkwt.campaign (company, created_at, send_at, due_date)
-            VALUES (%s, CURRENT_DATE, %s, %s)
+            INSERT INTO contract_pkwt.campaign (company_name, company_detail, created_at, send_at, due_date)
+            VALUES (%s, %s, CURRENT_DATE, %s, %s)
             RETURNING campaign_id
-        """, (campaign.company, campaign.send_date, campaign.due_date))
+        """, (campaign.company_name, campaign.company_detail, campaign.send_date, campaign.due_date))
 
         campaign_id = cursor.fetchone()[0]
 
@@ -1727,7 +1729,8 @@ async def get_campaigns_with_stats():
         cursor.execute("""
             SELECT
                 c.campaign_id,
-                c.company,
+                c.company_name,
+                c.company_detail,
                 c.created_at,
                 c.send_at,
                 c.due_date,
@@ -1740,7 +1743,7 @@ async def get_campaigns_with_stats():
             FROM contract_pkwt.campaign c
             LEFT JOIN contract_pkwt.list_contract lc ON c.campaign_id = lc.campaign_id
             LEFT JOIN contract_pkwt.contract_status cs ON lc.contract_id = cs.contract_id
-            GROUP BY c.campaign_id, c.company, c.created_at, c.send_at, c.due_date, c.pdf_total, c.pdf_generated, c.pdf_status
+            GROUP BY c.campaign_id, c.company_name, c.company_detail, c.created_at, c.send_at, c.due_date, c.pdf_total, c.pdf_generated, c.pdf_status
             ORDER BY c.created_at DESC
         """)
 

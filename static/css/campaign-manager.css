@@ -8,12 +8,13 @@
     cursor: pointer;
     position: relative;
     overflow: hidden;
+    box-shadow: 0 2px 4px rgba(0, 0, 0, 0.05);
 }
 
 .campaign-card:hover {
     transform: translateY(-2px);
-    box-shadow: 0 4px 12px rgba(0, 0, 0, 0.08);
-    border-color: #8B7FC7;
+    box-shadow: 0 8px 16px rgba(0, 0, 0, 0.1);
+    border-color: #155BD5;
 }
 
 .campaign-card::before {
@@ -23,7 +24,7 @@
     left: 0;
     right: 0;
     height: 4px;
-    background: #8B7FC7;
+    background: linear-gradient(90deg, #155BD5 0%, #4A7FE8 100%);
     border-radius: 12px 12px 0 0;
 }
 
@@ -41,8 +42,16 @@
     margin-bottom: 4px;
 }
 
+.campaign-subtitle {
+    font-size: 14px;
+    font-weight: 400;
+    color: #6B6B6B;
+    margin-bottom: 6px;
+}
+
 .campaign-id {
     font-size: 12px;
+    font-weight: 300;
     color: #6B6B6B;
     background: #F5F5F7;
     padding: 2px 8px;
@@ -64,13 +73,13 @@
     font-size: 11px;
     color: #6B6B6B;
     text-transform: uppercase;
-    font-weight: 500;
+    font-weight: 400;
     margin-bottom: 4px;
 }
 
 .date-value {
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     color: #1A1A1A;
 }
 
@@ -87,12 +96,13 @@
 
 .stat-label {
     font-size: 13px;
+    font-weight: 300;
     color: #6B6B6B;
 }
 
 .stat-value {
     font-size: 14px;
-    font-weight: 600;
+    font-weight: 500;
     color: #1A1A1A;
 }
 
@@ -109,12 +119,13 @@
 
 .progress-text {
     font-size: 13px;
+    font-weight: 300;
     color: #6B6B6B;
 }
 
 .progress-percentage {
     font-size: 13px;
-    font-weight: 600;
+    font-weight: 500;
     color: #10B981;
 }
 
@@ -137,37 +148,51 @@
 .status-badge {
     display: inline-block;
     padding: 4px 12px;
-    border-radius: 6px;
+    border-radius: 12px;
     font-size: 11px;
-    font-weight: 600;
+    font-weight: 500;
     text-transform: uppercase;
 }
 
 .status-active {
-    background: #E8E4F3;
-    color: #8B7FC7;
+    background: #dbeafe;
+    color: #155BD5;
+}
+
+.status-upcoming {
+    background: #e0e7ff;
+    color: #4f46e5;
 }
 
 .status-completed {
-    background: #D1FAE5;
-    color: #065F46;
+    background: #dcfce7;
+    color: #16a34a;
 }
 
-.status-pending {
-    background: #FEF3C7;
-    color: #92400E;
+.status-inactive {
+    background: #e5e7eb;
+    color: #6b7280;
 }
 
 /* Pagination Styles */
+.pagination-wrapper {
+    display: flex;
+    flex-direction: column;
+    align-items: center;
+    gap: 12px;
+}
+
 .pagination {
     display: flex;
     align-items: center;
     justify-content: center;
-    gap: 8px;
+    gap: 6px;
 }
 
 .page-btn {
-    padding: 8px 12px;
+    min-width: 40px;
+    height: 40px;
+    padding: 0 12px;
     border: 1px solid #d1d5db;
     background: white;
     color: #374151;
@@ -175,22 +200,48 @@
     cursor: pointer;
     transition: all 0.2s ease;
     font-size: 14px;
+    font-weight: 500;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
 }
 
-.page-btn:hover {
-    background: #f9fafb;
+.page-btn:hover:not(:disabled):not(.active) {
+    background: #f3f4f6;
     border-color: #9ca3af;
 }
 
 .page-btn.active {
-    background: #3b82f6;
+    background: #155BD5;
     color: white;
-    border-color: #3b82f6;
+    border-color: #155BD5;
+    font-weight: 600;
 }
 
 .page-btn:disabled {
-    opacity: 0.5;
+    opacity: 0.4;
     cursor: not-allowed;
+    background: white;
+}
+
+.page-btn.ellipsis {
+    border: none;
+    cursor: default;
+    font-weight: 300;
+    color: #9ca3af;
+}
+
+.page-btn.ellipsis:hover {
+    background: white;
+    border: none;
+}
+
+.pagination-info {
+    text-align: center;
+    margin-top: 12px;
+    font-size: 14px;
+    font-weight: 300;
+    color: #6b7280;
 }
 
 /* Contract Content Container (reused from campaign.css) */
@@ -247,4 +298,56 @@
 
 .empty-state-text {
     font-size: 14px;
+}
+
+/* Company Autocomplete Dropdown */
+.company-suggestions-dropdown {
+    position: absolute;
+    top: 100%;
+    left: 0;
+    right: 0;
+    background: white;
+    border: 1px solid #d1d5db;
+    border-top: none;
+    border-radius: 0 0 6px 6px;
+    max-height: 200px;
+    overflow-y: auto;
+    z-index: 10;
+    display: none;
+    box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1);
+    margin-top: 1px;
+}
+
+.company-suggestions-dropdown.active {
+    display: block;
+}
+
+.company-suggestion-item {
+    padding: 10px 16px;
+    cursor: pointer;
+    font-size: 14px;
+    color: #374151;
+    transition: background-color 0.15s ease;
+    border-bottom: 1px solid #f3f4f6;
+}
+
+.company-suggestion-item:last-child {
+    border-bottom: none;
+}
+
+.company-suggestion-item:hover {
+    background-color: #eff6ff;
+    color: #155BD5;
+}
+
+.company-suggestion-item.selected {
+    background-color: #dbeafe;
+    color: #155BD5;
+}
+
+.company-suggestion-empty {
+    padding: 10px 16px;
+    font-size: 14px;
+    color: #9ca3af;
+    font-style: italic;
 }

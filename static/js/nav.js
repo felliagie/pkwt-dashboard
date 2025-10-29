@@ -54,18 +54,25 @@ function toggleAccordion(section) {
 function setActiveNavigation() {
     const currentPath = window.location.pathname;
 
-    // Remove active classes from all nav links
-    document.querySelectorAll('nav a').forEach(link => {
+    // Remove active classes from all nav links (top level only, not dropdown items)
+    document.querySelectorAll('nav > div > div > div > div > a').forEach(link => {
         link.classList.remove('text-white', 'font-medium');
         link.classList.add('text-blue-100', 'font-light');
     });
 
-    // Add active class to current page link
-    const activeLink = document.querySelector(`nav a[href="${currentPath}"]`);
+    // Add active class to current page link (top level)
+    const activeLink = document.querySelector(`nav > div > div > div > div > a[href="${currentPath}"]`);
     if (activeLink) {
         activeLink.classList.remove('text-blue-100', 'font-light');
         activeLink.classList.add('text-white', 'font-medium');
     }
+
+    // Handle dropdown menu items - make active ones blue
+    document.querySelectorAll('nav .dropdown-container a').forEach(link => {
+        if (link.getAttribute('href') === currentPath) {
+            link.classList.add('bg-blue-50', 'text-primary');
+        }
+    });
 
     // Highlight parent dropdown button if child page is active
     if (currentPath.includes('/campaign')) {

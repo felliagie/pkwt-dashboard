@@ -14,15 +14,164 @@ document.addEventListener('DOMContentLoaded', function() {
 });
 
 let currentPage = 1;
-const itemsPerPage = 9;
+const itemsPerPage = 6; // Limit to 6 cards per page (2 rows of 3)
 let totalCampaigns = 0;
 let campaigns = [];
+let filteredCampaigns = [];
 let progressPollingInterval = null;
+
+// Filter state
+let filters = {
+    search: '',
+    status: 'all',
+    company: ''
+};
 
 function initializeCampaignManager() {
     loadCampaigns();
     setupModal();
+    setupFilters();
     startProgressPolling();
+}
+
+// Setup filter event listeners
+function setupFilters() {
+    const searchInput = document.getElementById('search-campaign');
+    const statusFilter = document.getElementById('status-filter');
+    const companyFilter = document.getElementById('company-filter');
+    const companySuggestions = document.getElementById('company-suggestions');
+    const resetButton = document.getElementById('reset-filters');
+
+    if (searchInput) {
+        searchInput.addEventListener('input', (e) => {
+            filters.search = e.target.value.toLowerCase();
+            applyFilters();
+        });
+    }
+
+    if (statusFilter) {
+        statusFilter.addEventListener('change', (e) => {
+            filters.status = e.target.value;
+            applyFilters();
+        });
+    }
+
+    if (companyFilter) {
+        // Show suggestions on focus
+        companyFilter.addEventListener('focus', () => {
+            showCompanySuggestions('');
+        });
+
+        // Update suggestions on input
+        companyFilter.addEventListener('input', (e) => {
+            const value = e.target.value;
+            filters.company = value.toLowerCase();
+            showCompanySuggestions(value);
+            applyFilters();
+        });
+
+        // Hide suggestions when clicking outside
+        document.addEventListener('click', (e) => {
+            if (!companyFilter.contains(e.target) && !companySuggestions.contains(e.target)) {
+                companySuggestions.classList.remove('active');
+            }
+        });
+    }
+
+    if (resetButton) {
+        resetButton.addEventListener('click', () => {
+            filters = { search: '', status: 'all', company: '' };
+            searchInput.value = '';
+            statusFilter.value = 'all';
+            companyFilter.value = '';
+            companySuggestions.classList.remove('active');
+            applyFilters();
+        });
+    }
+}
+
+// Show company suggestions dropdown
+function showCompanySuggestions(searchValue) {
+    const companySuggestions = document.getElementById('company-suggestions');
+    const companyFilter = document.getElementById('company-filter');
+
+    // Get unique company names from campaigns
+    const uniqueCompanies = [...new Set(campaigns
+        .map(c => c.company_name)
+        .filter(name => name && name.toLowerCase().includes(searchValue.toLowerCase()))
+    )].sort();
+
+    if (uniqueCompanies.length === 0) {
+        companySuggestions.innerHTML = '<div class="company-suggestion-empty">No companies found</div>';
+        companySuggestions.classList.add('active');
+        return;
+    }
+
+    // Build suggestions HTML
+    const suggestionsHTML = uniqueCompanies.map(company =>
+        `<div class="company-suggestion-item" data-company="${company}">${company}</div>`
+    ).join('');
+
+    companySuggestions.innerHTML = suggestionsHTML;
+    companySuggestions.classList.add('active');
+
+    // Add click handlers to suggestions
+    companySuggestions.querySelectorAll('.company-suggestion-item').forEach(item => {
+        item.addEventListener('click', () => {
+            const selectedCompany = item.dataset.company;
+            companyFilter.value = selectedCompany;
+            filters.company = selectedCompany.toLowerCase();
+            companySuggestions.classList.remove('active');
+            applyFilters();
+        });
+    });
+}
+
+// Apply filters to campaigns
+function applyFilters() {
+    filteredCampaigns = campaigns.filter(campaign => {
+        // Search filter - searches in company_name, company_detail, and campaign_id
+        const searchMatch = filters.search === '' ||
+            (campaign.company_name && campaign.company_name.toLowerCase().includes(filters.search)) ||
+            (campaign.company_detail && campaign.company_detail.toLowerCase().includes(filters.search)) ||
+            campaign.campaign_id.toString().includes(filters.search);
+
+        // Status filter
+        const statusMatch = filters.status === 'all' || getCampaignStatus(campaign) === filters.status;
+
+        // Company filter - searches in company_name
+        const companyMatch = filters.company === '' ||
+            (campaign.company_name && campaign.company_name.toLowerCase().includes(filters.company));
+
+        return searchMatch && statusMatch && companyMatch;
+    });
+
+    totalCampaigns = filteredCampaigns.length;
+    currentPage = 1;
+    displayCampaigns();
+    setupPagination();
+}
+
+// Get campaign status
+function getCampaignStatus(campaign) {
+    const today = new Date();
+    today.setHours(0, 0, 0, 0);
+
+    const sendDate = new Date(campaign.send_date);
+    sendDate.setHours(0, 0, 0, 0);
+
+    const dueDate = new Date(campaign.due_date);
+    dueDate.setHours(0, 0, 0, 0);
+
+    if (today < sendDate) {
+        return 'upcoming';
+    } else if (today >= sendDate && today <= dueDate) {
+        return 'active';
+    } else if (today > dueDate) {
+        return 'inactive'; // Changed from 'overdue' to 'inactive'
+    } else {
+        return 'completed';
+    }
 }
 
 // Poll for PDF generation progress
@@ -52,7 +201,8 @@ async function loadCampaigns(silent = false) {
 
         const response = await fetch('/api/campaigns-with-stats');
         campaigns = await response.json();
-        totalCampaigns = campaigns.length;
+        filteredCampaigns = campaigns; // Initialize filtered campaigns
+        totalCampaigns = filteredCampaigns.length;
 
         if (!silent) {
             loadingElement.classList.add('hidden');
@@ -82,7 +232,12 @@ function displayCampaigns() {
     const campaignsContainer = document.getElementById('campaigns-container');
     const startIndex = (currentPage - 1) * itemsPerPage;
     const endIndex = startIndex + itemsPerPage;
-    const pageData = campaigns.slice(startIndex, endIndex);
+    const pageData = filteredCampaigns.slice(startIndex, endIndex);
+
+    if (pageData.length === 0) {
+        campaignsContainer.innerHTML = '<div class="col-span-3 text-center py-12 text-gray-500 font-light">No campaigns match your filters.</div>';
+        return;
+    }
 
     campaignsContainer.innerHTML = pageData.map(campaign => createCampaignCard(campaign)).join('');
 
@@ -109,7 +264,8 @@ function createCampaignCard(campaign) {
         <div class="campaign-card" data-campaign-id="${campaign.campaign_id}">
             <div class="campaign-header">
                 <div>
-                    <div class="campaign-title">${campaign.company}</div>
+                    <div class="campaign-title">${campaign.company_name || 'PT Mandom Indonesia'}</div>
+                    ${campaign.company_detail ? `<div class="campaign-subtitle">${campaign.company_detail}</div>` : ''}
                     <div class="campaign-id">ID: ${campaign.campaign_id}</div>
                 </div>
                 <div class="status-badge ${statusClass}">
@@ -163,31 +319,24 @@ function createCampaignCard(campaign) {
 
 // Get status class based on campaign data
 function getStatusClass(campaign) {
-    const now = new Date();
-    const sendDate = new Date(campaign.send_at);
-    const dueDate = new Date(campaign.due_date);
-
-    if (campaign.signed_count === campaign.total_contracts && campaign.total_contracts > 0) {
-        return 'status-completed';
-    } else if (now > dueDate) {
-        return 'status-pending';
-    } else {
-        return 'status-active';
-    }
+    const status = getCampaignStatus(campaign);
+    return `status-${status}`;
 }
 
 // Get status text based on campaign data
 function getStatusText(campaign) {
-    const now = new Date();
-    const sendDate = new Date(campaign.send_at);
-    const dueDate = new Date(campaign.due_date);
-
-    if (campaign.signed_count === campaign.total_contracts && campaign.total_contracts > 0) {
-        return 'Completed';
-    } else if (now > dueDate) {
-        return 'Overdue';
-    } else {
-        return 'Active';
+    const status = getCampaignStatus(campaign);
+    switch (status) {
+        case 'active':
+            return 'Active';
+        case 'upcoming':
+            return 'Upcoming';
+        case 'completed':
+            return 'Completed';
+        case 'inactive':
+            return 'Inactive'; // Changed from 'Overdue' to 'Inactive'
+        default:
+            return 'Active';
     }
 }
 
@@ -260,41 +409,80 @@ function setupPagination() {
         return;
     }
 
-    let paginationHTML = '<div class="pagination">';
+    const startItem = (currentPage - 1) * itemsPerPage + 1;
+    const endItem = Math.min(currentPage * itemsPerPage, totalCampaigns);
 
-    // Previous button
+    let paginationHTML = '<div class="pagination-wrapper"><div class="pagination">';
+
+    // Previous button with icon
     paginationHTML += `
-        <button class="page-btn ${currentPage === 1 ? 'disabled' : ''}"
+        <button class="page-btn"
                 onclick="changePage(${currentPage - 1})"
                 ${currentPage === 1 ? 'disabled' : ''}>
-            Previous
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"/>
+            </svg>
         </button>
     `;
 
-    // Page numbers
-    for (let i = 1; i <= totalPages; i++) {
-        if (i === 1 || i === totalPages || (i >= currentPage - 2 && i <= currentPage + 2)) {
-            paginationHTML += `
-                <button class="page-btn ${i === currentPage ? 'active' : ''}"
-                        onclick="changePage(${i})">
-                    ${i}
-                </button>
-            `;
-        } else if (i === currentPage - 3 || i === currentPage + 3) {
-            paginationHTML += '<span class="page-btn disabled">...</span>';
-        }
+    // Always show first page
+    paginationHTML += `
+        <button class="page-btn ${1 === currentPage ? 'active' : ''}"
+                onclick="changePage(1)">
+            1
+        </button>
+    `;
+
+    // Show ellipsis if needed
+    if (currentPage > 3) {
+        paginationHTML += '<span class="page-btn ellipsis">...</span>';
     }
 
-    // Next button
+    // Show pages around current page
+    for (let i = Math.max(2, currentPage - 1); i <= Math.min(totalPages - 1, currentPage + 1); i++) {
+        paginationHTML += `
+            <button class="page-btn ${i === currentPage ? 'active' : ''}"
+                    onclick="changePage(${i})">
+                ${i}
+            </button>
+        `;
+    }
+
+    // Show ellipsis if needed
+    if (currentPage < totalPages - 2) {
+        paginationHTML += '<span class="page-btn ellipsis">...</span>';
+    }
+
+    // Always show last page if there's more than one page
+    if (totalPages > 1) {
+        paginationHTML += `
+            <button class="page-btn ${totalPages === currentPage ? 'active' : ''}"
+                    onclick="changePage(${totalPages})">
+                ${totalPages}
+            </button>
+        `;
+    }
+
+    // Next button with icon
     paginationHTML += `
-        <button class="page-btn ${currentPage === totalPages ? 'disabled' : ''}"
+        <button class="page-btn"
                 onclick="changePage(${currentPage + 1})"
                 ${currentPage === totalPages ? 'disabled' : ''}>
-            Next
+            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"/>
+            </svg>
         </button>
     `;
 
     paginationHTML += '</div>';
+
+    // Add pagination info below
+    paginationHTML += `
+        <div class="pagination-info">
+            Showing ${startItem} to ${endItem} of ${totalCampaigns} campaigns
+        </div>
+    </div>`;
+
     paginationContainer.innerHTML = paginationHTML;
 }
 
@@ -332,7 +520,10 @@ async function openCampaignDetails(campaignId) {
     // Find campaign data
     const campaign = campaigns.find(c => c.campaign_id == campaignId);
     if (campaign) {
-        modalTitle.textContent = `${campaign.company} - Campaign ${campaign.campaign_id}`;
+        const companyDisplay = campaign.company_detail
+            ? `${campaign.company_name || 'PT Mandom Indonesia'} - ${campaign.company_detail}`
+            : (campaign.company_name || 'PT Mandom Indonesia');
+        modalTitle.textContent = `${companyDisplay} - Campaign ${campaign.campaign_id}`;
     }
 
     // Load campaign data

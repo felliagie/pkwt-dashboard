@@ -5,76 +5,100 @@
     <meta name="viewport" content="width=device-width, initial-scale=1.0">
     <title>Campaign Manager - PKWT Dashboard</title>
     <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="preconnect" href="https://fonts.googleapis.com">
+    <link rel="preconnect" href="https://fonts.gstatic.com" crossorigin>
+    <link href="https://fonts.googleapis.com/css2?family=Poppins:wght@100;200;300;400;500;600;700;800;900&display=swap" rel="stylesheet">
+    <script>
+        tailwind.config = {
+            theme: {
+                extend: {
+                    colors: {
+                        primary: '#155BD5',
+                        'primary-light': '#4A7FE8',
+                        'primary-dark': '#0D3D8F',
+                    },
+                    fontFamily: {
+                        sans: ['Poppins', 'sans-serif'],
+                    },
+                }
+            }
+        }
+    </script>
+    <style>
+        body {
+            font-family: 'Poppins', sans-serif;
+        }
+    </style>
     <link rel="stylesheet" href="/static/css/styles.css">
     <link rel="stylesheet" href="/static/css/campaign-manager.css">
 </head>
-<body class="bg-gray-50">
+<body class="bg-gray-50 min-h-screen">
     <!-- Navbar -->
-    <nav style="background-color: #FFFFFF; border-bottom: 1px solid #E5E5E5;">
-        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
-            <div class="flex justify-between h-16">
-                <div class="flex items-center">
-                    <img src="/static/images/top-logo.png" alt="JMax Logo" class="h-8">
-                </div>
-                <div class="flex items-center space-x-2">
-                    <!-- Dashboard -->
-                    <a href="/" class="text-gray-600 hover:text-purple-600 font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">Dashboard</a>
+    <nav class="bg-primary mb-6 shadow-md">
+        <div class="max-w-[1600px] mx-auto px-6 py-5">
+            <div class="flex justify-between items-center">
+                <div class="flex items-center space-x-10">
+                    <img src="/static/images/top-logo.png" alt="JMax Logo" class="h-14">
+                    <div class="flex items-center space-x-8">
+                        <!-- Dashboard -->
+                        <a href="/" class="text-base font-light text-blue-100 hover:text-white transition-colors duration-200">Dashboard</a>
 
-                    <!-- Campaign Dropdown -->
-                    <div class="relative dropdown-container">
-                        <button onclick="toggleDropdown('dropdown-campaign')" data-dropdown="campaign" class="text-purple-600 font-semibold px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors inline-flex items-center">
-                            Campaign
-                            <svg class="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                            </svg>
-                        </button>
+                        <!-- Campaign Dropdown -->
+                        <div class="relative dropdown-container">
+                            <button onclick="toggleDropdown('dropdown-campaign')" data-dropdown="campaign" class="text-base font-medium text-white transition-colors duration-200 hover:text-blue-100 inline-flex items-center">
+                                Campaign
+                                <svg class="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
 
-                        <!-- Dropdown Menu -->
-                        <div id="dropdown-campaign" class="hidden absolute left-0 mt-2 w-56 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-                            <div class="py-1">
-                                <a href="/campaign" class="block px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors">
-                                    <div class="font-medium">Initiate Campaign</div>
-                                    <div class="text-xs text-gray-500 mt-1">Create new PKWT campaign</div>
-                                </a>
-                                <a href="/campaign-manager" class="block px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors">
-                                    <div class="font-medium">Manage Campaign</div>
-                                    <div class="text-xs text-gray-500 mt-1">View and manage campaigns</div>
-                                </a>
+                            <!-- Dropdown Menu -->
+                            <div id="dropdown-campaign" class="hidden absolute left-0 mt-2 w-56 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                                <div class="py-1">
+                                    <a href="/campaign" class="block px-4 py-3 text-sm font-light text-gray-700 hover:bg-blue-50 hover:text-primary transition-colors duration-200">
+                                        <div class="font-medium">Initiate Campaign</div>
+                                        <div class="text-xs font-light text-gray-500 mt-1">Create new PKWT campaign</div>
+                                    </a>
+                                    <a href="/campaign-manager" class="block px-4 py-3 text-sm font-light text-gray-700 hover:bg-blue-50 hover:text-primary transition-colors duration-200">
+                                        <div class="font-medium">Manage Campaign</div>
+                                        <div class="text-xs font-light text-gray-500 mt-1">View and manage campaigns</div>
+                                    </a>
+                                </div>
+                            </div>
+                        </div>
+
+                        <!-- Payroll Dropdown -->
+                        <div class="relative dropdown-container">
+                            <button onclick="toggleDropdown('dropdown-payroll')" data-dropdown="payroll" class="text-base font-light text-blue-100 hover:text-white transition-colors duration-200 inline-flex items-center">
+                                Payroll
+                                <svg class="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                                </svg>
+                            </button>
+
+                            <!-- Dropdown Menu -->
+                            <div id="dropdown-payroll" class="hidden absolute left-0 mt-2 w-56 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                                <div class="py-1">
+                                    <a href="/payroll" class="block px-4 py-3 text-sm font-light text-gray-700 hover:bg-blue-50 hover:text-primary transition-colors duration-200">
+                                        <div class="font-medium">Initiate Payroll</div>
+                                        <div class="text-xs font-light text-gray-500 mt-1">Create new payroll campaign</div>
+                                    </a>
+                                    <a href="/payroll-manager" class="block px-4 py-3 text-sm font-light text-gray-700 hover:bg-blue-50 hover:text-primary transition-colors duration-200">
+                                        <div class="font-medium">Manage Payroll</div>
+                                        <div class="text-xs font-light text-gray-500 mt-1">View and manage payroll</div>
+                                    </a>
+                                </div>
                             </div>
                         </div>
                     </div>
-
-                    <!-- Payroll Dropdown -->
-                    <div class="relative dropdown-container">
-                        <button onclick="toggleDropdown('dropdown-payroll')" data-dropdown="payroll" class="text-gray-600 hover:text-purple-600 font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors inline-flex items-center">
-                            Payroll
-                            <svg class="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
-                            </svg>
-                        </button>
-
-                        <!-- Dropdown Menu -->
-                        <div id="dropdown-payroll" class="hidden absolute left-0 mt-2 w-56 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
-                            <div class="py-1">
-                                <a href="/payroll" class="block px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors">
-                                    <div class="font-medium">Initiate Payroll</div>
-                                    <div class="text-xs text-gray-500 mt-1">Create new payroll campaign</div>
-                                </a>
-                                <a href="/payroll-manager" class="block px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors">
-                                    <div class="font-medium">Manage Payroll</div>
-                                    <div class="text-xs text-gray-500 mt-1">View and manage payroll</div>
-                                </a>
-                            </div>
-                        </div>
-                    </div>
-
-                    <!-- Logout -->
-                    <button onclick="logout()" class="text-gray-600 hover:text-purple-600 transition-colors p-2 ml-2" title="Logout">
-                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
-                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
-                        </svg>
-                    </button>
                 </div>
+
+                <!-- Logout Button -->
+                <button onclick="logout()" class="px-5 py-2.5 bg-white text-primary text-base font-medium rounded-md transition-all duration-200 hover:bg-blue-50" title="Logout">
+                    <svg class="w-5 h-5 inline-block" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                    </svg>
+                </button>
             </div>
         </div>
     </nav>
@@ -82,9 +106,49 @@
     <!-- Main Content -->
     <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <!-- Header -->
-        <div class="mb-8">
-            <h1 class="text-4xl font-bold text-gray-900">📊 Campaign Manager</h1>
-            <p class="mt-2 text-gray-600 text-lg">Manage and monitor your PKWT campaigns</p>
+        <div class="mb-8 bg-gradient-to-r from-blue-50 to-indigo-50 rounded-xl p-8 border border-blue-100">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-5xl font-bold text-gray-900 mb-3">
+                        <span class="text-primary">Campaign</span> Manager
+                    </h1>
+                    <p class="text-lg font-light text-gray-600">Manage and monitor your PKWT campaigns</p>
+                </div>
+            </div>
+        </div>
+
+        <!-- Filters Section -->
+        <div class="mb-6 bg-white rounded-lg p-6 border border-gray-200" style="box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+            <div class="grid grid-cols-1 md:grid-cols-4 gap-4">
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Search</label>
+                    <input type="text" id="search-campaign" placeholder="Search by company, detail, or ID..." class="w-full px-4 py-2.5 border border-gray-300 rounded-md font-light focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200">
+                </div>
+                <div>
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Status</label>
+                    <select id="status-filter" class="w-full px-4 py-2.5 border border-gray-300 rounded-md font-light focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200">
+                        <option value="all">All Status</option>
+                        <option value="active">Active</option>
+                        <option value="upcoming">Upcoming</option>
+                        <option value="completed">Completed</option>
+                        <option value="inactive">Inactive</option>
+                    </select>
+                </div>
+                <div class="relative">
+                    <label class="block text-sm font-medium text-gray-700 mb-1.5">Company</label>
+                    <input type="text"
+                           id="company-filter"
+                           placeholder="Type to filter by company..."
+                           class="w-full px-4 py-2.5 border border-gray-300 rounded-md font-light focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                           autocomplete="off">
+                    <div id="company-suggestions" class="company-suggestions-dropdown"></div>
+                </div>
+                <div class="flex items-end">
+                    <button id="reset-filters" class="w-full px-4 py-2.5 bg-white border border-gray-300 rounded-md text-gray-700 hover:bg-gray-50 font-medium transition-all duration-200 hover:shadow-md">
+                        Reset Filters
+                    </button>
+                </div>
+            </div>
         </div>
 
         <!-- Campaign Cards Container -->
@@ -99,8 +163,8 @@
 
         <!-- Loading State -->
         <div id="loading" class="text-center py-12">
-            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
-            <p class="mt-2 text-gray-600">Loading campaigns...</p>
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-primary"></div>
+            <p class="mt-2 font-light text-gray-600">Loading campaigns...</p>
         </div>
     </main>
 

@@ -38,7 +38,16 @@ async function loadCampaignInfo() {
         const response = await fetch(`/api/campaigns/${campaignId}`);
         const campaign = await response.json();
 
-        document.getElementById('campaign-title').textContent = campaign.company;
+        // Build company display
+        const companyName = campaign.company_name || 'PT Mandom Indonesia';
+        const companyTitle = campaign.company_detail
+            ? `${companyName} - ${campaign.company_detail}`
+            : companyName;
+
+        document.getElementById('campaign-title').innerHTML = `
+            <div>${companyName}</div>
+            ${campaign.company_detail ? `<div class="text-2xl font-medium text-gray-600 mt-2">${campaign.company_detail}</div>` : ''}
+        `;
         document.getElementById('campaign-subtitle').textContent = `Campaign ID: ${campaign.campaign_id} | Created: ${formatDate(campaign.created_at)} | Send Date: ${formatDate(campaign.send_at)} | Due Date: ${formatDate(campaign.due_date)}`;
     } catch (error) {
         console.error('Error loading campaign info:', error);

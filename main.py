@@ -306,7 +306,14 @@ async def upload_payroll_data(file: UploadFile = File(...), payroll_campaign_id:
         contents = await file.read()
 
         # Parse Excel file - skip 2 header rows, treat first data row as data (not headers)
-        df = pd.read_excel(io.BytesIO(contents), skiprows=2, header=None)
+        # Preserve leading zeros in columns that might have them (NIK, bank account, phone numbers, etc.)
+        df = pd.read_excel(
+            io.BytesIO(contents),
+            skiprows=2,
+            header=None,
+            dtype=str,  # Read all columns as strings to preserve leading zeros
+            keep_default_na=False  # Don't convert empty strings to NaN
+        )
 
         # Remove last row (total row)
         df = df.iloc[:-1]
@@ -331,9 +338,29 @@ async def upload_payroll_data(file: UploadFile = File(...), payroll_campaign_id:
 
         df.columns = column_names
 
+        # Convert numeric columns from string to numeric, while preserving text columns as-is
+        # This preserves leading zeros in NIK, bank_account_no, etc.
+        numeric_columns = [
+            'basic_pay', 'basic_pay_bpjs', 'working_days', 'overtime', 'ksd', 'incentive',
+            'end_of_contract', 'tdk', 'potongan', 'tunjangan', 'total_salary',
+            'jkk_0_24_percent', 'jht_3_7_percent', 'jp_2_percent', 'jkm_0_3_percent',
+            'bpjs_kesehatan_4_percent', 'total_insurance', 'total_with_bpjs', 'management_fee',
+            'grand_total', 'jht_2_percent_deduction', 'jp_1_percent_deduction',
+            'bpjs_kesehatan_1_percent_deduction', 'pph21', 'total_deduction',
+            'reim_kesehatan_karyawan', 'thp'
+        ]
+
+        for col in numeric_columns:
+            if col in df.columns:
+                # Convert to numeric, empty strings become None
+                df[col] = pd.to_numeric(df[col], errors='coerce')
+
         # Replace NaN and inf values with None for proper JSON serialization
         import numpy as np
         df = df.replace([np.nan, np.inf, -np.inf], None)
+
+        # Replace empty strings with None for text columns
+        df = df.replace('', None)
 
         # Convert to list of dictionaries
         data = df.to_dict('records')
@@ -2765,7 +2792,7 @@ def get_payroll_email_body(list_payroll_id):
             lp.nik,
             lc.email,
             pc.company,
-            pc.send_at,
+            lp.salary_period,
             lp.thp
         FROM contract_pkwt.list_payroll lp
         JOIN contract_pkwt.payroll_campaign pc ON lp.payroll_campaign_id = pc.payroll_campaign_id
@@ -2780,12 +2807,12 @@ def get_payroll_email_body(list_payroll_id):
     if not payroll:
         return None
 
-    employee_name, employee_id, nik, email, company, send_at, thp = payroll
+    employee_name, employee_id, nik, email, company, salary_period, thp = payroll
 
-    # Format period from send_at date
-    if send_at:
-        month = INDONESIAN_MONTHS[send_at.month]
-        year = send_at.year
+    # Format period from salary_period date
+    if salary_period:
+        month = INDONESIAN_MONTHS[salary_period.month]
+        year = salary_period.year
         period_str = f'{month} {year}'
     else:
         period_str = '-'

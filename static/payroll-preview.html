@@ -1,0 +1,239 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payroll Preview - PKWT Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/styles.css">
+    <style>
+        .info-card {
+            background: #FFFFFF;
+            border-radius: 12px;
+            padding: 24px;
+            border: 1px solid #E5E5E5;
+        }
+        .info-label {
+            font-size: 12px;
+            font-weight: 500;
+            color: #6B6B6B;
+            text-transform: uppercase;
+            margin-bottom: 4px;
+        }
+        .info-value {
+            font-size: 16px;
+            font-weight: 600;
+            color: #1A1A1A;
+        }
+        .pdf-viewer {
+            border: 1px solid #E5E5E5;
+            border-radius: 8px;
+            overflow: auto;
+            height: 600px;
+            background-color: #F5F5F7;
+        }
+        .pdf-viewer object,
+        .pdf-viewer iframe {
+            width: 100%;
+            height: 100%;
+            border: none;
+        }
+        .nav-button {
+            display: inline-flex;
+            align-items: center;
+            gap: 8px;
+            padding: 10px 16px;
+            border-radius: 8px;
+            font-weight: 600;
+            transition: all 0.2s;
+        }
+        .nav-button:disabled {
+            opacity: 0.5;
+            cursor: not-allowed;
+        }
+        .nav-button-prev {
+            background-color: #F3F4F6;
+            color: #374151;
+        }
+        .nav-button-prev:hover:not(:disabled) {
+            background-color: #E5E7EB;
+        }
+        .nav-button-next {
+            background-color: #F3F4F6;
+            color: #374151;
+        }
+        .nav-button-next:hover:not(:disabled) {
+            background-color: #E5E7EB;
+        }
+    </style>
+</head>
+<body class="bg-gray-50">
+    <!-- Navbar -->
+    <nav style="background-color: #FFFFFF; border-bottom: 1px solid #E5E5E5;">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <span class="text-xl font-bold" style="color: #1A1A1A;">JMax</span>
+                </div>
+                <div class="flex items-center space-x-8">
+                    <a href="/" class="text-gray-600 hover:text-purple-600 font-medium transition-colors">Dashboard</a>
+                    <a href="/campaign" class="text-gray-600 hover:text-purple-600 font-medium transition-colors">Campaign</a>
+                    <a href="/payroll-management" class="text-purple-600 font-semibold px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">Payroll</a>
+                    <button onclick="logout()" class="text-gray-600 hover:text-purple-600 transition-colors p-2" title="Logout">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <div class="flex items-center justify-between">
+                <div>
+                    <h1 class="text-4xl font-bold text-gray-900">💰 Payroll Preview</h1>
+                    <p class="mt-2 text-gray-600 text-lg">View and download payroll slip</p>
+                </div>
+                <a href="/payroll-management" class="text-purple-600 hover:text-purple-700 font-semibold flex items-center gap-2">
+                    <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M10 19l-7-7m0 0l7-7m-7 7h18"></path>
+                    </svg>
+                    Back to Payroll Management
+                </a>
+            </div>
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading-state" class="flex items-center justify-center py-12">
+            <div class="text-center">
+                <svg class="animate-spin h-12 w-12 text-purple-600 mx-auto mb-4" xmlns="http://www.w3.org/2000/svg" fill="none" viewBox="0 0 24 24">
+                    <circle class="opacity-25" cx="12" cy="12" r="10" stroke="currentColor" stroke-width="4"></circle>
+                    <path class="opacity-75" fill="currentColor" d="M4 12a8 8 0 018-8V0C5.373 0 0 5.373 0 12h4zm2 5.291A7.962 7.962 0 014 12H0c0 3.042 1.135 5.824 3 7.938l3-2.647z"></path>
+                </svg>
+                <p class="text-gray-600 text-lg">Loading payroll data...</p>
+            </div>
+        </div>
+
+        <!-- Error State -->
+        <div id="error-state" class="hidden">
+            <div class="bg-red-50 border border-red-200 rounded-lg p-6 text-center">
+                <svg class="w-12 h-12 text-red-600 mx-auto mb-4" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 8v4m0 4h.01M21 12a9 9 0 11-18 0 9 9 0 0118 0z"></path>
+                </svg>
+                <h3 class="text-lg font-semibold text-red-900 mb-2">Error Loading Payroll</h3>
+                <p class="text-red-700" id="error-message">Failed to load payroll data.</p>
+            </div>
+        </div>
+
+        <!-- Main Content Grid -->
+        <div id="main-content" class="hidden grid grid-cols-1 lg:grid-cols-2 gap-6">
+            <!-- Left Column - PDF Viewer -->
+            <div class="info-card">
+                <h3 class="text-lg font-semibold mb-4" style="color: #1A1A1A;">📄 Payroll Slip</h3>
+                <div class="pdf-viewer" id="pdf-container">
+                    <p style="color: #6B6B6B;" class="text-center py-8">Loading PDF...</p>
+                </div>
+            </div>
+
+            <!-- Right Column - Information and Actions -->
+            <div class="space-y-6">
+                <!-- Employee Info Card -->
+                <div class="info-card">
+                    <h3 class="text-lg font-semibold mb-4" style="color: #1A1A1A;">👤 Employee Information</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="info-label">Employee Name</label>
+                            <p class="info-value" id="employee-name">-</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="info-label">Employee ID</label>
+                                <p class="info-value" id="employee-id">-</p>
+                            </div>
+                            <div>
+                                <label class="info-label">NIK</label>
+                                <p class="info-value" id="nik">-</p>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="info-label">Position</label>
+                            <p class="info-value" id="job-title">-</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="info-label">Bank</label>
+                                <p class="info-value" id="bank">-</p>
+                            </div>
+                            <div>
+                                <label class="info-label">Account Number</label>
+                                <p class="info-value" id="bank-account">-</p>
+                            </div>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Campaign Info Card -->
+                <div class="info-card">
+                    <h3 class="text-lg font-semibold mb-4" style="color: #1A1A1A;">💼 Campaign Information</h3>
+                    <div class="space-y-3">
+                        <div>
+                            <label class="info-label">Company</label>
+                            <p class="info-value" id="company">-</p>
+                        </div>
+                        <div class="grid grid-cols-2 gap-4">
+                            <div>
+                                <label class="info-label">Payment Date</label>
+                                <p class="info-value" id="payment-date">-</p>
+                            </div>
+                            <div>
+                                <label class="info-label">Salary Period</label>
+                                <p class="info-value" id="salary-period">-</p>
+                            </div>
+                        </div>
+                        <div>
+                            <label class="info-label">Take Home Pay</label>
+                            <p class="info-value text-green-600" id="thp">-</p>
+                        </div>
+                    </div>
+                </div>
+
+                <!-- Actions Card -->
+                <div class="info-card">
+                    <h3 class="text-lg font-semibold mb-4" style="color: #1A1A1A;">⚡ Actions</h3>
+                    <div class="space-y-3">
+                        <button id="download-btn" class="w-full bg-purple-600 hover:bg-purple-700 text-white font-semibold py-3 px-6 rounded-lg transition-all duration-200 flex items-center justify-center gap-2">
+                            <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 10v6m0 0l-3-3m3 3l3-3m2 8H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+                            </svg>
+                            Download PDF
+                        </button>
+
+                        <!-- Navigation -->
+                        <div class="flex gap-3 pt-3">
+                            <button id="prev-btn" class="nav-button nav-button-prev flex-1">
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M15 19l-7-7 7-7"></path>
+                                </svg>
+                                Previous
+                            </button>
+                            <button id="next-btn" class="nav-button nav-button-next flex-1">
+                                Next
+                                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 5l7 7-7 7"></path>
+                                </svg>
+                            </button>
+                        </div>
+                        <p class="text-center text-sm text-gray-500" id="nav-info">-</p>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </main>
+
+    <script src="/static/js/payroll-preview.js"></script>
+</body>
+</html>

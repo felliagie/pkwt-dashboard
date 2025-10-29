@@ -2478,6 +2478,94 @@ class ReminderRequest(BaseModel):
     names: List[str]
     emails: List[str]
 
+@app.post("/api/campaigns/{campaign_id}/send-reminders")
+async def send_campaign_reminders(campaign_id: int):
+    """Send reminder emails to all unsigned contracts in a campaign"""
+    try:
+        success_count = 0
+        failed_count = 0
+
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        # Get all unsigned contracts for this campaign
+        cursor.execute("""
+            SELECT lc.contract_id, lc.name, lc.email, lc.contract_num_detail_md5
+            FROM contract_pkwt.list_contract lc
+            LEFT JOIN contract_pkwt.contract_status cs ON lc.contract_id = cs.contract_id
+            WHERE lc.campaign_id = %s
+            AND (cs.signed_status IS NULL OR cs.signed_status = FALSE)
+        """, (campaign_id,))
+
+        unsigned_contracts = cursor.fetchall()
+
+        for contract_id, name, email, contract_num_detail_md5 in unsigned_contracts:
+            try:
+                if not email:
+                    failed_count += 1
+                    print(f"No email for {name}")
+                    continue
+
+                if not contract_num_detail_md5:
+                    print(f"No contract_num_detail_md5 found for {name}")
+                    failed_count += 1
+                    continue
+
+                reminder_text = f"""Kami mengingatkan bahwa proses penandatanganan kontrak kerja waktu tertentu (PKWT) dapat diakses melalui platform digital.
+
+Segera akses laman berikut untuk melakukan penandatanganan kontrak.
+https://wa.me/6281220008729?text=ttd_{contract_num_detail_md5}
+
+Terima kasih atas perhatian dan kerja samanya.
+
+Salam hangat,
+Tajunissa Legisa W
+General Manager
+PT JMAX Indonesia
+📧 Lisa@jmaxindo.com"""
+
+                html_body = f"<p>{reminder_text.replace(chr(10), '<br>')}</p>"
+
+                postmark_response = requests.post(
+                    'https://api.postmarkapp.com/email',
+                    headers={
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-Postmark-Server-Token': 'e3e7715d-2a61-4187-b79e-6c27733c9cda'
+                    },
+                    json={
+                        'From': 'hr@jmaxindo.id',
+                        'To': 'teguh.hardiansah@proton.me',
+                        'Subject': f'Reminder: Penandatanganan PKWT - {name}',
+                        'HtmlBody': html_body,
+                        'TextBody': reminder_text,
+                        'MessageStream': 'outbound'
+                    }
+                )
+
+                if postmark_response.status_code == 200:
+                    success_count += 1
+                else:
+                    failed_count += 1
+
+            except Exception as e:
+                print(f"Error sending reminder for {name}: {str(e)}")
+                failed_count += 1
+
+        cursor.close()
+        conn.close()
+
+        return JSONResponse(content={
+            "success_count": success_count,
+            "failed_count": failed_count
+        })
+
+    except Exception as e:
+        print(f"Error sending campaign reminders: {str(e)}")
+        import traceback
+        print(traceback.format_exc())
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
 @app.post("/api/send-reminders")
 async def send_reminders(request: ReminderRequest):
     """Send reminder emails to selected contracts"""
@@ -2563,55 +2651,6 @@ PT JMAX Indonesia
     except Exception as e:
         import traceback
         print(f"Error in send reminders: {str(e)}")
-        print(f"Traceback: {traceback.format_exc()}")
-        return JSONResponse(status_code=500, content={"error": str(e)})
-
-
-@app.post("/api/send-confirmation")
-async def send_confirmation():
-    """Send confirmation email for account activation"""
-    try:
-        confirmation_text = """Kami telah melakukan aktivasi akun atas nama Darwati. Silahkan Bapak/Ibu melakukan login kembali di link berikut untuk melanjutkan proses.
-https://pkwt.jmaxindo.id/
-
-Terima kasih atas perhatian dan kerja samanya.
-
-Salam hangat,
-Tajunissa Legisa W
-General Manager
-PT JMAX Indonesia
-📧 Lisa@jmaxindo.com"""
-
-        html_body = f"<p>{confirmation_text.replace(chr(10), '<br>')}</p>"
-
-        postmark_response = requests.post(
-            'https://api.postmarkapp.com/email',
-            headers={
-                'Accept': 'application/json',
-                'Content-Type': 'application/json',
-                'X-Postmark-Server-Token': 'e3e7715d-2a61-4187-b79e-6c27733c9cda'
-            },
-            json={
-                'From': 'hr@jmaxindo.id',
-                'To': 'gavinpati@gmail.com',
-                'Subject': 'Konfirmasi Aktivasi Akun - Darwati',
-                'HtmlBody': html_body,
-                'TextBody': confirmation_text,
-                'MessageStream': 'outbound'
-            }
-        )
-
-        if postmark_response.status_code in [200, 201]:
-            return JSONResponse(content={
-                "message": "Confirmation email sent successfully",
-                "status": "success"
-            })
-        else:
-            raise Exception(f"Postmark API error: {postmark_response.text}")
-
-    except Exception as e:
-        import traceback
-        print(f"Error sending confirmation: {str(e)}")
         print(f"Traceback: {traceback.format_exc()}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 

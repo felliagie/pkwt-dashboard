@@ -271,17 +271,17 @@
 
         <!-- Action Buttons -->
         <div class="mb-6 flex gap-4">
-            <button onclick="window.location.href='/campaign'" class="btn-primary">
-                ➕ New Campaign
+            <button onclick="window.location.href='/campaign'" class="px-6 py-3 bg-primary text-white font-medium rounded-lg hover:bg-primary-dark transition-all duration-200 hover:shadow-lg flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                New Campaign
             </button>
-            <button id="open-campaign-selector" class="btn-success">
-                📧 Publish Campaign
-            </button>
-            <button id="open-reminder-modal" class="btn-success">
-                🔔 Send Reminder
-            </button>
-            <button id="send-confirmation-btn" class="btn-success">
-                ✅ Send Confirmation
+            <button onclick="window.location.href='/payroll'" class="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-all duration-200 hover:shadow-lg flex items-center gap-2">
+                <svg class="w-5 h-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"/>
+                </svg>
+                Initialize Payroll
             </button>
         </div>
 

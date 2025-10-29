@@ -130,6 +130,16 @@
             </div>
         </div>
 
+        <!-- Action Buttons -->
+        <div class="mb-6 flex gap-4">
+            <button id="publish-campaign-btn" class="px-6 py-3 bg-primary text-white font-medium rounded-lg hover:bg-primary-dark transition-all duration-200 hover:shadow-lg flex items-center gap-2">
+                <span>📧</span> Publish Campaign
+            </button>
+            <button id="send-reminders-btn" class="px-6 py-3 bg-green-600 text-white font-medium rounded-lg hover:bg-green-700 transition-all duration-200 hover:shadow-lg flex items-center gap-2">
+                <span>🔔</span> Send Reminders
+            </button>
+        </div>
+
         <!-- Contracts Table -->
         <div class="bg-white rounded-lg border border-gray-200 shadow-sm">
             <div class="px-4 py-5 sm:p-6">
@@ -177,6 +187,94 @@
                         <!-- Contract HTML will be populated by JavaScript -->
                     </div>
                 </div>
+            </div>
+        </div>
+    </div>
+
+    <!-- Publish Confirmation Modal -->
+    <div id="publish-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg border border-gray-200 max-w-lg w-full mx-4" style="box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-900">Confirm Publish Campaign</h3>
+                    <button id="close-publish-modal" class="text-gray-500 hover:text-gray-700 transition-colors duration-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-6">
+                <p class="text-base font-light text-gray-700 mb-4">Are you sure you want to publish this campaign and send emails to all contracts?</p>
+                <p class="text-sm font-light text-gray-600 mt-1">Total emails to send: <span id="publish-count" class="font-medium">0</span></p>
+            </div>
+
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-2">
+                <button id="cancel-publish" class="px-4 py-2 text-sm text-gray-700 font-medium rounded-md transition-all duration-200 hover:bg-gray-200">
+                    Cancel
+                </button>
+                <button id="confirm-publish" class="px-4 py-2 text-sm bg-primary text-white font-medium rounded-md transition-all duration-200 hover:bg-primary-dark hover:shadow-md">
+                    Confirm & Send
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Result Modal -->
+    <div id="result-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg border border-gray-200 max-w-2xl w-full mx-4 max-h-[90vh] overflow-y-auto" style="box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-900">Results</h3>
+                    <button id="close-result-modal" class="text-gray-500 hover:text-gray-700 transition-colors duration-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-6">
+                <div id="result-content" class="space-y-4">
+                    <!-- Results will be populated by JavaScript -->
+                </div>
+            </div>
+
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end">
+                <button id="close-result-btn" class="px-4 py-2 text-sm bg-gray-200 rounded-md text-gray-700 hover:bg-gray-300 font-medium transition-all duration-200">
+                    Close
+                </button>
+            </div>
+        </div>
+    </div>
+
+    <!-- Reminder Confirmation Modal -->
+    <div id="reminder-modal" class="hidden fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+        <div class="bg-white rounded-lg border border-gray-200 max-w-lg w-full mx-4" style="box-shadow: 0 20px 25px -5px rgba(0, 0, 0, 0.1), 0 10px 10px -5px rgba(0, 0, 0, 0.04);">
+            <div class="px-6 py-4 border-b border-gray-200">
+                <div class="flex justify-between items-center">
+                    <h3 class="text-lg font-semibold text-gray-900">Confirm Send Reminders</h3>
+                    <button id="close-reminder-modal" class="text-gray-500 hover:text-gray-700 transition-colors duration-200">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"/>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+
+            <div class="p-6">
+                <p class="text-base font-light text-gray-700 mb-4">Send reminders to all unsigned contracts?</p>
+                <p class="text-sm font-light text-gray-600 mt-1">Unsigned contracts: <span id="reminder-count" class="font-medium">0</span></p>
+            </div>
+
+            <div class="px-6 py-4 bg-gray-50 border-t border-gray-200 flex justify-end space-x-2">
+                <button id="cancel-reminder" class="px-4 py-2 text-sm text-gray-700 font-medium rounded-md transition-all duration-200 hover:bg-gray-200">
+                    Cancel
+                </button>
+                <button id="confirm-reminder" class="px-4 py-2 text-sm bg-green-600 text-white font-medium rounded-md transition-all duration-200 hover:bg-green-700 hover:shadow-md">
+                    Confirm & Send
+                </button>
             </div>
         </div>
     </div>

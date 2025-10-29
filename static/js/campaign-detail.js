@@ -12,6 +12,7 @@ async function logout() {
 document.addEventListener('DOMContentLoaded', function() {
     initializeCampaignDetail();
     setupModal();
+    setupActionButtons();
 });
 
 let campaignId = null;
@@ -217,4 +218,167 @@ function formatIndonesianDate(dateString) {
 // Format currency with thousand separators
 function formatCurrency(value) {
     return value.toString().replace(/\B(?=(\d{3})+(?!\d))/g, '.');
+}
+
+// Setup action buttons
+function setupActionButtons() {
+    // Publish Campaign button
+    document.getElementById('publish-campaign-btn').addEventListener('click', () => {
+        openPublishModal();
+    });
+
+    // Send Reminders button
+    document.getElementById('send-reminders-btn').addEventListener('click', () => {
+        openReminderModal();
+    });
+
+    // Publish modal handlers
+    document.getElementById('close-publish-modal').addEventListener('click', () => {
+        document.getElementById('publish-modal').classList.add('hidden');
+    });
+    document.getElementById('cancel-publish').addEventListener('click', () => {
+        document.getElementById('publish-modal').classList.add('hidden');
+    });
+    document.getElementById('confirm-publish').addEventListener('click', () => {
+        publishCampaign();
+    });
+
+    // Reminder modal handlers
+    document.getElementById('close-reminder-modal').addEventListener('click', () => {
+        document.getElementById('reminder-modal').classList.add('hidden');
+    });
+    document.getElementById('cancel-reminder').addEventListener('click', () => {
+        document.getElementById('reminder-modal').classList.add('hidden');
+    });
+    document.getElementById('confirm-reminder').addEventListener('click', () => {
+        sendReminders();
+    });
+
+    // Result modal handlers
+    document.getElementById('close-result-modal').addEventListener('click', () => {
+        document.getElementById('result-modal').classList.add('hidden');
+    });
+    document.getElementById('close-result-btn').addEventListener('click', () => {
+        document.getElementById('result-modal').classList.add('hidden');
+    });
+}
+
+// Open publish modal
+function openPublishModal() {
+    const totalContracts = contracts.length;
+    document.getElementById('publish-count').textContent = totalContracts;
+    document.getElementById('publish-modal').classList.remove('hidden');
+}
+
+// Publish campaign
+async function publishCampaign() {
+    const confirmBtn = document.getElementById('confirm-publish');
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Sending...';
+
+    try {
+        const contractIds = contracts.map(c => c.contract_id);
+
+        const response = await fetch('/api/bulk-send-email', {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            },
+            body: JSON.stringify({
+                contract_ids: contractIds,
+                campaign_id: campaignId
+            })
+        });
+
+        const result = await response.json();
+
+        document.getElementById('publish-modal').classList.add('hidden');
+        showResultModal(result);
+
+        // Reload contracts
+        await loadContracts();
+
+    } catch (error) {
+        console.error('Error publishing campaign:', error);
+        alert('Failed to publish campaign. Please try again.');
+    } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Confirm & Send';
+    }
+}
+
+// Open reminder modal
+function openReminderModal() {
+    const unsignedContracts = contracts.filter(c => !c.signed_status);
+    document.getElementById('reminder-count').textContent = unsignedContracts.length;
+    document.getElementById('reminder-modal').classList.remove('hidden');
+}
+
+// Send reminders
+async function sendReminders() {
+    const confirmBtn = document.getElementById('confirm-reminder');
+    confirmBtn.disabled = true;
+    confirmBtn.textContent = 'Sending...';
+
+    try {
+        const unsignedContracts = contracts.filter(c => !c.signed_status);
+
+        const response = await fetch(`/api/campaigns/${campaignId}/send-reminders`, {
+            method: 'POST',
+            headers: {
+                'Content-Type': 'application/json'
+            }
+        });
+
+        const result = await response.json();
+
+        document.getElementById('reminder-modal').classList.add('hidden');
+
+        if (result.success_count > 0) {
+            alert(`Sent ${result.success_count} reminder(s) successfully!`);
+        }
+
+        if (result.failed_count > 0) {
+            alert(`Failed to send ${result.failed_count} reminder(s)`);
+        }
+
+    } catch (error) {
+        console.error('Error sending reminders:', error);
+        alert('Failed to send reminders. Please try again.');
+    } finally {
+        confirmBtn.disabled = false;
+        confirmBtn.textContent = 'Confirm & Send';
+    }
+}
+
+// Show result modal
+function showResultModal(result) {
+    const resultContent = document.getElementById('result-content');
+
+    let html = `
+        <div class="mb-4">
+            <h4 class="font-semibold text-lg text-gray-900">Summary</h4>
+            <p class="text-sm text-gray-600 mt-2">Successfully sent: <span class="font-medium text-green-600">${result.success?.length || 0}</span></p>
+            <p class="text-sm text-gray-600">Failed: <span class="font-medium text-red-600">${result.failed?.length || 0}</span></p>
+        </div>
+    `;
+
+    if (result.failed && result.failed.length > 0) {
+        html += `
+            <div class="mt-4">
+                <h4 class="font-semibold text-base text-gray-900 mb-2">Failed Emails:</h4>
+                <div class="space-y-2 max-h-60 overflow-y-auto">
+                    ${result.failed.map(item => `
+                        <div class="p-3 bg-red-50 border border-red-200 rounded-md">
+                            <p class="text-sm font-medium text-red-900">Contract ID: ${item.contract_id}</p>
+                            <p class="text-xs text-red-700">${item.error}</p>
+                        </div>
+                    `).join('')}
+                </div>
+            </div>
+        `;
+    }
+
+    resultContent.innerHTML = html;
+    document.getElementById('result-modal').classList.remove('hidden');
 }

@@ -473,22 +473,39 @@ document.getElementById('confirm-btn').addEventListener('click', async () => {
         if (response.ok) {
             const result = await response.json();
 
-            // Start progress monitoring
-            btn.innerHTML = originalText;
-            btn.disabled = false;
-
-            startProgressMonitoring();
+            // Show success modal
+            showSuccessModal(result.inserted_count);
         } else {
             const error = await response.json();
             alert('Error: ' + (error.detail || 'Failed to save data'));
+            btn.disabled = false;
+            btn.innerHTML = originalText;
         }
     } catch (error) {
         console.error('Error:', error);
         alert('Error saving data. Please try again.');
-    } finally {
         btn.disabled = false;
         btn.innerHTML = originalText;
     }
+});
+
+// Show success modal
+function showSuccessModal(employeeCount) {
+    const modal = document.getElementById('success-modal');
+    const countElement = document.getElementById('success-employee-count');
+
+    if (countElement) {
+        countElement.textContent = employeeCount;
+    }
+
+    if (modal) {
+        modal.classList.remove('hidden');
+    }
+}
+
+// Go to manager button
+document.getElementById('go-to-manager-btn').addEventListener('click', () => {
+    window.location.href = '/payroll-manager';
 });
 
 // Progress monitoring functions
@@ -558,7 +575,7 @@ async function updateProgress() {
                     setTimeout(() => {
                         hideProgressModal();
                         alert(`Success! All ${pdfTotal} payroll PDFs have been generated.\n\nYou can now view and download them from the payroll management page.`);
-                        window.location.href = '/payroll-management';
+                        window.location.href = '/payroll';
                     }, 1500);
                     break;
                 case 'failed':

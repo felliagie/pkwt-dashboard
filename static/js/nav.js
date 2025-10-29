@@ -56,29 +56,29 @@ function setActiveNavigation() {
 
     // Remove active classes from all nav links
     document.querySelectorAll('nav a').forEach(link => {
-        link.classList.remove('text-purple-600', 'font-semibold');
-        link.classList.add('text-gray-600', 'font-medium');
+        link.classList.remove('text-white', 'font-medium');
+        link.classList.add('text-blue-100', 'font-light');
     });
 
     // Add active class to current page link
     const activeLink = document.querySelector(`nav a[href="${currentPath}"]`);
     if (activeLink) {
-        activeLink.classList.remove('text-gray-600', 'font-medium');
-        activeLink.classList.add('text-purple-600', 'font-semibold');
+        activeLink.classList.remove('text-blue-100', 'font-light');
+        activeLink.classList.add('text-white', 'font-medium');
     }
 
     // Highlight parent dropdown button if child page is active
     if (currentPath.includes('/campaign')) {
         const campaignButton = document.querySelector('[data-dropdown="campaign"]');
         if (campaignButton) {
-            campaignButton.classList.remove('text-gray-600');
-            campaignButton.classList.add('text-purple-600');
+            campaignButton.classList.remove('text-blue-100', 'font-light');
+            campaignButton.classList.add('text-white', 'font-medium');
         }
     } else if (currentPath.includes('/payroll')) {
         const payrollButton = document.querySelector('[data-dropdown="payroll"]');
         if (payrollButton) {
-            payrollButton.classList.remove('text-gray-600');
-            payrollButton.classList.add('text-purple-600');
+            payrollButton.classList.remove('text-blue-100', 'font-light');
+            payrollButton.classList.add('text-white', 'font-medium');
         }
     }
 }

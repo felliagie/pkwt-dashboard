@@ -987,11 +987,11 @@ async def get_hourly_analytics():
 
         cursor.execute("""
             SELECT
-                EXTRACT(HOUR FROM send_at::timestamp) as hour,
+                EXTRACT(HOUR FROM send_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Jakarta') as hour,
                 COUNT(*) as count
             FROM contract_pkwt.contract_status
             WHERE send_at IS NOT NULL
-            GROUP BY EXTRACT(HOUR FROM send_at::timestamp)
+            GROUP BY EXTRACT(HOUR FROM send_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Jakarta')
             ORDER BY hour
         """)
 
@@ -999,11 +999,11 @@ async def get_hourly_analytics():
 
         cursor.execute("""
             SELECT
-                EXTRACT(HOUR FROM signed_at::timestamp) as hour,
+                EXTRACT(HOUR FROM signed_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Jakarta') as hour,
                 COUNT(*) as count
             FROM contract_pkwt.contract_status
             WHERE signed_at IS NOT NULL
-            GROUP BY EXTRACT(HOUR FROM signed_at::timestamp)
+            GROUP BY EXTRACT(HOUR FROM signed_at AT TIME ZONE 'UTC' AT TIME ZONE 'Asia/Jakarta')
             ORDER BY hour
         """)
 

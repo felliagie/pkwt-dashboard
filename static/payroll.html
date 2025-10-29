@@ -14,13 +14,62 @@
         <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
             <div class="flex justify-between h-16">
                 <div class="flex items-center">
-                    <span class="text-xl font-bold" style="color: #1A1A1A;">JMax</span>
+                    <img src="/static/images/top-logo.png" alt="JMax Logo" class="h-8">
                 </div>
-                <div class="flex items-center space-x-8">
-                    <a href="/" class="text-gray-600 hover:text-purple-600 font-medium transition-colors">Dashboard</a>
-                    <a href="/campaign" class="text-gray-600 hover:text-purple-600 font-medium transition-colors">Campaign</a>
-                    <a href="/payroll-management" class="text-purple-600 font-semibold px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">Payroll</a>
-                    <button onclick="logout()" class="text-gray-600 hover:text-purple-600 transition-colors p-2" title="Logout">
+                <div class="flex items-center space-x-2">
+                    <!-- Dashboard -->
+                    <a href="/" class="text-gray-600 hover:text-purple-600 font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">Dashboard</a>
+
+                    <!-- Campaign Dropdown -->
+                    <div class="relative dropdown-container">
+                        <button onclick="toggleDropdown('dropdown-campaign')" data-dropdown="campaign" class="text-gray-600 hover:text-purple-600 font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors inline-flex items-center">
+                            Campaign
+                            <svg class="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+
+                        <!-- Dropdown Menu -->
+                        <div id="dropdown-campaign" class="hidden absolute left-0 mt-2 w-56 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                            <div class="py-1">
+                                <a href="/campaign" class="block px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors">
+                                    <div class="font-medium">Initiate Campaign</div>
+                                    <div class="text-xs text-gray-500 mt-1">Create new PKWT campaign</div>
+                                </a>
+                                <a href="/campaign-manager" class="block px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors">
+                                    <div class="font-medium">Manage Campaign</div>
+                                    <div class="text-xs text-gray-500 mt-1">View and manage campaigns</div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payroll Dropdown -->
+                    <div class="relative dropdown-container">
+                        <button onclick="toggleDropdown('dropdown-payroll')" data-dropdown="payroll" class="text-purple-600 font-semibold px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors inline-flex items-center">
+                            Payroll
+                            <svg class="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+
+                        <!-- Dropdown Menu -->
+                        <div id="dropdown-payroll" class="hidden absolute left-0 mt-2 w-56 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                            <div class="py-1">
+                                <a href="/payroll" class="block px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors">
+                                    <div class="font-medium">Initiate Payroll</div>
+                                    <div class="text-xs text-gray-500 mt-1">Create new payroll campaign</div>
+                                </a>
+                                <a href="/payroll-manager" class="block px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors">
+                                    <div class="font-medium">Manage Payroll</div>
+                                    <div class="text-xs text-gray-500 mt-1">View and manage payroll</div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Logout -->
+                    <button onclick="logout()" class="text-gray-600 hover:text-purple-600 transition-colors p-2 ml-2" title="Logout">
                         <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                             <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
                         </svg>
@@ -34,7 +83,7 @@
     <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
         <!-- Header -->
         <div class="mb-8">
-            <h1 class="text-4xl font-bold text-gray-900">💰 Payroll Management</h1>
+            <h1 class="text-4xl font-bold text-gray-900">💰 Payroll</h1>
             <p class="mt-2 text-gray-600 text-lg">Create payroll campaign and upload employee payroll data</p>
         </div>
 
@@ -276,6 +325,7 @@
         </div>
     </div>
 
+    <script src="/static/js/nav.js"></script>
     <script src="/static/js/payroll-management.js"></script>
 </body>
 </html>

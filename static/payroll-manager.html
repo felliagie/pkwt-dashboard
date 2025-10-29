@@ -1,0 +1,230 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Payroll Manager - PKWT Dashboard</title>
+    <script src="https://cdn.tailwindcss.com"></script>
+    <link rel="stylesheet" href="/static/css/styles.css">
+</head>
+<body class="bg-gray-50">
+    <!-- Navbar -->
+    <nav style="background-color: #FFFFFF; border-bottom: 1px solid #E5E5E5;">
+        <div class="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8">
+            <div class="flex justify-between h-16">
+                <div class="flex items-center">
+                    <img src="/static/images/top-logo.png" alt="JMax Logo" class="h-8">
+                </div>
+                <div class="flex items-center space-x-2">
+                    <!-- Dashboard -->
+                    <a href="/" class="text-gray-600 hover:text-purple-600 font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors">Dashboard</a>
+
+                    <!-- Campaign Dropdown -->
+                    <div class="relative dropdown-container">
+                        <button onclick="toggleDropdown('dropdown-campaign')" data-dropdown="campaign" class="text-gray-600 hover:text-purple-600 font-medium px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors inline-flex items-center">
+                            Campaign
+                            <svg class="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+
+                        <!-- Dropdown Menu -->
+                        <div id="dropdown-campaign" class="hidden absolute left-0 mt-2 w-56 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                            <div class="py-1">
+                                <a href="/campaign" class="block px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors">
+                                    <div class="font-medium">Initiate Campaign</div>
+                                    <div class="text-xs text-gray-500 mt-1">Create new PKWT campaign</div>
+                                </a>
+                                <a href="/campaign-manager" class="block px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors">
+                                    <div class="font-medium">Manage Campaign</div>
+                                    <div class="text-xs text-gray-500 mt-1">View and manage campaigns</div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Payroll Dropdown -->
+                    <div class="relative dropdown-container">
+                        <button onclick="toggleDropdown('dropdown-payroll')" data-dropdown="payroll" class="text-purple-600 font-semibold px-4 py-2 rounded-lg hover:bg-gray-50 transition-colors inline-flex items-center">
+                            Payroll
+                            <svg class="ml-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M19 9l-7 7-7-7"/>
+                            </svg>
+                        </button>
+
+                        <!-- Dropdown Menu -->
+                        <div id="dropdown-payroll" class="hidden absolute left-0 mt-2 w-56 rounded-lg shadow-lg bg-white ring-1 ring-black ring-opacity-5 z-50">
+                            <div class="py-1">
+                                <a href="/payroll" class="block px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors">
+                                    <div class="font-medium">Initiate Payroll</div>
+                                    <div class="text-xs text-gray-500 mt-1">Create new payroll campaign</div>
+                                </a>
+                                <a href="/payroll-manager" class="block px-4 py-3 text-sm text-gray-700 hover:bg-purple-50 hover:text-purple-600 transition-colors">
+                                    <div class="font-medium">Manage Payroll</div>
+                                    <div class="text-xs text-gray-500 mt-1">View and manage payroll</div>
+                                </a>
+                            </div>
+                        </div>
+                    </div>
+
+                    <!-- Logout -->
+                    <button onclick="logout()" class="text-gray-600 hover:text-purple-600 transition-colors p-2 ml-2" title="Logout">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M17 16l4-4m0 0l-4-4m4 4H7m6 4v1a3 3 0 01-3 3H6a3 3 0 01-3-3V7a3 3 0 013-3h4a3 3 0 013 3v1"></path>
+                        </svg>
+                    </button>
+                </div>
+            </div>
+        </div>
+    </nav>
+
+    <!-- Main Content -->
+    <main class="max-w-7xl mx-auto py-6 px-4 sm:px-6 lg:px-8">
+        <!-- Header -->
+        <div class="mb-8">
+            <h1 class="text-4xl font-bold text-gray-900">💰 Payroll Manager</h1>
+            <p class="mt-2 text-gray-600 text-lg">Manage and monitor your payroll campaigns</p>
+        </div>
+
+        <!-- Payroll Cards Container -->
+        <div id="payrolls-container" class="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
+            <!-- Payroll cards will be populated by JavaScript -->
+        </div>
+
+        <!-- Pagination -->
+        <div id="pagination-container" class="mt-8 flex justify-center">
+            <!-- Pagination will be populated by JavaScript -->
+        </div>
+
+        <!-- Loading State -->
+        <div id="loading" class="text-center py-12">
+            <div class="inline-block animate-spin rounded-full h-8 w-8 border-b-2 border-purple-600"></div>
+            <p class="mt-2 text-gray-600">Loading payroll campaigns...</p>
+        </div>
+
+        <!-- Empty State -->
+        <div id="empty-state" class="hidden text-center py-12">
+            <svg class="mx-auto h-12 w-12 text-gray-400" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M9 12h6m-6 4h6m2 5H7a2 2 0 01-2-2V5a2 2 0 012-2h5.586a1 1 0 01.707.293l5.414 5.414a1 1 0 01.293.707V19a2 2 0 01-2 2z"></path>
+            </svg>
+            <h3 class="mt-2 text-sm font-medium text-gray-900">No payroll campaigns</h3>
+            <p class="mt-1 text-sm text-gray-500">Get started by creating a new payroll campaign.</p>
+            <div class="mt-6">
+                <a href="/payroll" class="inline-flex items-center px-4 py-2 border border-transparent shadow-sm text-sm font-medium rounded-md text-white bg-purple-600 hover:bg-purple-700 focus:outline-none focus:ring-2 focus:ring-offset-2 focus:ring-purple-500">
+                    <svg class="-ml-1 mr-2 h-5 w-5" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                        <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M12 4v16m8-8H4"></path>
+                    </svg>
+                    Create Payroll Campaign
+                </a>
+            </div>
+        </div>
+    </main>
+
+    <!-- Payroll Details Modal -->
+    <div id="payroll-details-modal" class="hidden fixed inset-0 bg-gray-600 bg-opacity-50 overflow-y-auto h-full w-full z-50">
+        <div class="relative top-10 mx-auto p-5 border w-11/12 max-w-6xl shadow-lg rounded-md bg-white">
+            <div class="mt-3">
+                <div class="flex justify-between items-center mb-4">
+                    <h3 class="text-lg font-medium text-gray-900" id="modal-payroll-title">Payroll Details</h3>
+                    <button id="close-payroll-details" class="text-gray-400 hover:text-gray-600">
+                        <svg class="w-6 h-6" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                            <path stroke-linecap="round" stroke-linejoin="round" stroke-width="2" d="M6 18L18 6M6 6l12 12"></path>
+                        </svg>
+                    </button>
+                </div>
+
+                <!-- Payroll List Section -->
+                <div class="mb-8">
+                    <h4 class="text-lg font-semibold text-gray-900 mb-4">Payroll List</h4>
+                    <div class="bg-gray-50 p-4 rounded-lg max-h-96 overflow-y-auto">
+                        <table class="min-w-full divide-y divide-gray-200">
+                            <thead class="bg-gray-50 sticky top-0">
+                                <tr id="modal-payroll-table-header">
+                                    <!-- Headers will be populated by JavaScript -->
+                                </tr>
+                            </thead>
+                            <tbody class="bg-white divide-y divide-gray-200" id="modal-payroll-table-body">
+                                <!-- Data will be populated by JavaScript -->
+                            </tbody>
+                        </table>
+                    </div>
+                </div>
+            </div>
+        </div>
+    </div>
+
+    <script>
+        // Logout function
+        function logout() {
+            document.cookie = 'session_id=; expires=Thu, 01 Jan 1970 00:00:00 UTC; path=/;';
+            window.location.href = '/login';
+        }
+
+        // Fetch and display payroll campaigns
+        async function loadPayrollCampaigns() {
+            try {
+                const response = await fetch('/api/payroll-campaigns');
+                const payrolls = await response.json();
+
+                const container = document.getElementById('payrolls-container');
+                const loading = document.getElementById('loading');
+                const emptyState = document.getElementById('empty-state');
+
+                loading.classList.add('hidden');
+
+                if (!payrolls || payrolls.length === 0) {
+                    emptyState.classList.remove('hidden');
+                    return;
+                }
+
+                container.innerHTML = payrolls.map(payroll => `
+                    <div class="bg-white rounded-lg shadow-sm border border-gray-200 p-6 hover:shadow-md transition-shadow">
+                        <div class="flex justify-between items-start mb-4">
+                            <h3 class="text-lg font-semibold text-gray-900">${payroll.name || 'Untitled Payroll'}</h3>
+                            <span class="px-3 py-1 text-xs font-medium rounded-full ${
+                                payroll.status === 'completed' ? 'bg-green-100 text-green-800' :
+                                payroll.status === 'active' ? 'bg-blue-100 text-blue-800' :
+                                'bg-gray-100 text-gray-800'
+                            }">
+                                ${payroll.status || 'pending'}
+                            </span>
+                        </div>
+                        <div class="space-y-2 text-sm text-gray-600">
+                            <p><strong>Campaign ID:</strong> ${payroll.payroll_campaign_id || 'N/A'}</p>
+                            <p><strong>Created:</strong> ${payroll.created_at ? new Date(payroll.created_at).toLocaleDateString() : 'N/A'}</p>
+                            ${payroll.description ? `<p class="mt-2">${payroll.description}</p>` : ''}
+                        </div>
+                        <div class="mt-4 pt-4 border-t border-gray-200">
+                            <button onclick="viewPayrollDetails(${payroll.payroll_campaign_id})" class="text-purple-600 hover:text-purple-700 font-medium text-sm">
+                                View Details →
+                            </button>
+                        </div>
+                    </div>
+                `).join('');
+
+            } catch (error) {
+                console.error('Error loading payroll campaigns:', error);
+                document.getElementById('loading').innerHTML = `
+                    <div class="text-center py-12">
+                        <p class="text-red-600">Error loading payroll campaigns. Please try again.</p>
+                    </div>
+                `;
+            }
+        }
+
+        function viewPayrollDetails(payrollId) {
+            // Navigate to payroll preview page
+            window.location.href = `/payroll-preview/${payrollId}`;
+        }
+
+        // Modal close handlers
+        document.getElementById('close-payroll-details')?.addEventListener('click', () => {
+            document.getElementById('payroll-details-modal').classList.add('hidden');
+        });
+
+        // Load payrolls on page load
+        document.addEventListener('DOMContentLoaded', loadPayrollCampaigns);
+    </script>
+    <script src="/static/js/nav.js"></script>
+</body>
+</html>

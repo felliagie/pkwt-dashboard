@@ -232,13 +232,13 @@ async def contract_preview():
     except Exception as e:
         return HTMLResponse(content=f"<h1>Error: {str(e)}</h1>", status_code=500)
 
-@app.get("/payroll-management", response_class=HTMLResponse)
+@app.get("/payroll", response_class=HTMLResponse)
 async def payroll_management_page(session_id: Optional[str] = Cookie(None)):
     user = get_user_from_session(session_id)
     if not user:
         return RedirectResponse(url="/login")
 
-    with open("static/payroll-management.html", "r", encoding="utf-8") as f:
+    with open("static/payroll.html", "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read(), status_code=200)
 
 @app.get("/payroll-base", response_class=HTMLResponse)
@@ -257,6 +257,15 @@ async def payroll_preview_page(list_payroll_id: int, session_id: Optional[str] =
         return RedirectResponse(url="/login")
 
     with open("static/payroll-preview.html", "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read(), status_code=200)
+
+@app.get("/payroll-manager", response_class=HTMLResponse)
+async def payroll_manager_page(session_id: Optional[str] = Cookie(None)):
+    user = get_user_from_session(session_id)
+    if not user:
+        return RedirectResponse(url="/login")
+
+    with open("static/payroll-manager.html", "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read(), status_code=200)
 
 # Payroll API Endpoints

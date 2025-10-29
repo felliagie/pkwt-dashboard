@@ -378,7 +378,7 @@ function startProgressPolling() {
 
 // View payroll details
 function viewPayrollDetails(payrollId) {
-    window.location.href = `/payroll-preview/${payrollId}`;
+    window.location.href = `/payroll-detail?id=${payrollId}`;
 }
 
 // Utility Functions

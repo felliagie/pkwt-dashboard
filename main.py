@@ -268,6 +268,15 @@ async def payroll_manager_page(session_id: Optional[str] = Cookie(None)):
     with open("static/payroll-manager.html", "r", encoding="utf-8") as f:
         return HTMLResponse(content=f.read(), status_code=200)
 
+@app.get("/payroll-detail", response_class=HTMLResponse)
+async def payroll_detail_page(session_id: Optional[str] = Cookie(None)):
+    user = get_user_from_session(session_id)
+    if not user:
+        return RedirectResponse(url="/login")
+
+    with open("static/payroll-detail.html", "r", encoding="utf-8") as f:
+        return HTMLResponse(content=f.read(), status_code=200)
+
 # Payroll API Endpoints
 @app.post("/api/payroll-campaigns")
 async def create_payroll_campaign(campaign: PayrollCampaignCreate):
@@ -2731,6 +2740,528 @@ async def get_contract_pdf_by_md5(contract_md5: str):
     except Exception as e:
         import traceback
         print(f"Error retrieving PDF by MD5: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+# ===== PAYROLL EMAIL FUNCTIONS =====
+
+def get_payroll_email_body(list_payroll_id):
+    """Generate email body for a payroll"""
+    # Indonesian month names
+    INDONESIAN_MONTHS = {
+        1: 'Januari', 2: 'Februari', 3: 'Maret', 4: 'April',
+        5: 'Mei', 6: 'Juni', 7: 'Juli', 8: 'Agustus',
+        9: 'September', 10: 'Oktober', 11: 'November', 12: 'Desember'
+    }
+
+    conn = get_db_connection()
+    cursor = conn.cursor()
+
+    cursor.execute("""
+        SELECT
+            lp.employee_name,
+            lp.employee_id,
+            lp.nik,
+            lc.email,
+            pc.company,
+            pc.send_at,
+            lp.thp
+        FROM contract_pkwt.list_payroll lp
+        JOIN contract_pkwt.payroll_campaign pc ON lp.payroll_campaign_id = pc.payroll_campaign_id
+        LEFT JOIN contract_pkwt.list_contract lc ON lp.nik = lc.nik AND lc.contract_id > 137
+        WHERE lp.list_payroll_id = %s
+    """, (list_payroll_id,))
+
+    payroll = cursor.fetchone()
+    cursor.close()
+    conn.close()
+
+    if not payroll:
+        return None
+
+    employee_name, employee_id, nik, email, company, send_at, thp = payroll
+
+    # Format period from send_at date
+    if send_at:
+        month = INDONESIAN_MONTHS[send_at.month]
+        year = send_at.year
+        period_str = f'{month} {year}'
+    else:
+        period_str = '-'
+
+    # Format THP (Take Home Pay) with thousand separator
+    if thp:
+        thp_formatted = f"Rp {thp:,.0f}".replace(",", ".")
+    else:
+        thp_formatted = "Rp 0"
+
+    subject = f"Payroll {company}"
+
+    # Build HTML email body
+    html_body = f"""<!DOCTYPE html>
+<html>
+<head>
+    <meta charset="UTF-8">
+    <style>
+        body {{
+            font-family: Arial, sans-serif;
+            line-height: 1.6;
+            color: #333;
+        }}
+    </style>
+</head>
+<body>
+    <p>Dear {employee_name},</p>
+
+    <p>Berikut kami lampirkan payroll untuk periode {period_str}.</p>
+
+    <p>Untuk keamanan dokumen, silakan masukkan password sesuai tanggal lahir anda dengan format "ddmmyy".<br>
+    Contoh: 19-02-1992 menjadi 190292.</p>
+
+    <p>Jika Anda memiliki pertanyaan atau membutuhkan informasi lebih lanjut, hubungi HRD kami di ebenezer@jmaxindo.com.</p>
+
+    <p>Salam hangat,<br>
+    Tajunissa Legisa W<br>
+    General Manager<br>
+    PT JMAX Indonesia<br>
+    📧 Lisa@jmaxindo.com</p>
+</body>
+</html>"""
+
+    # Build plain text version
+    text_body = f"""Dear {employee_name},
+
+Berikut kami lampirkan payroll untuk periode {period_str}.
+
+Untuk keamanan dokumen, silakan masukkan password sesuai tanggal lahir anda dengan format "ddmmyy".
+Contoh: 19-02-1992 menjadi 190292.
+
+Jika Anda memiliki pertanyaan atau membutuhkan informasi lebih lanjut, hubungi HRD kami di ebenezer@jmaxindo.com.
+
+Salam hangat,
+Tajunissa Legisa W
+General Manager
+PT JMAX Indonesia
+📧 Lisa@jmaxindo.com"""
+
+    return {"html": html_body, "text": text_body, "subject": subject}
+
+
+@app.get("/api/payroll-campaigns/{campaign_id}")
+async def get_payroll_campaign(campaign_id: int):
+    """Get payroll campaign details by ID"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT
+                payroll_campaign_id,
+                company,
+                created_at,
+                send_at,
+                status,
+                pdf_total,
+                pdf_generated,
+                pdf_status
+            FROM contract_pkwt.payroll_campaign
+            WHERE payroll_campaign_id = %s
+        """, (campaign_id,))
+
+        campaign = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        if not campaign:
+            return JSONResponse(status_code=404, content={"error": "Campaign not found"})
+
+        return {
+            "payroll_campaign_id": campaign[0],
+            "company": campaign[1],
+            "created_at": campaign[2].isoformat() if campaign[2] else None,
+            "send_at": campaign[3].isoformat() if campaign[3] else None,
+            "status": campaign[4],
+            "pdf_total": campaign[5],
+            "pdf_generated": campaign[6],
+            "pdf_status": campaign[7]
+        }
+
+    except Exception as e:
+        import traceback
+        print(f"Error getting payroll campaign: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+@app.get("/api/payroll-campaigns/{campaign_id}/payrolls")
+async def get_payroll_list(campaign_id: int):
+    """Get all payroll records with send status for a campaign"""
+    try:
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT
+                lp.list_payroll_id,
+                lp.employee_id,
+                lp.employee_name,
+                lp.nik,
+                lc.email,
+                lp.thp,
+                COALESCE(ps.send_status, FALSE) as send_status,
+                ps.send_at
+            FROM contract_pkwt.list_payroll lp
+            LEFT JOIN contract_pkwt.payroll_status ps ON lp.list_payroll_id = ps.list_payroll_id
+            LEFT JOIN contract_pkwt.list_contract lc ON lp.nik = lc.nik AND lc.contract_id > 137
+            WHERE lp.payroll_campaign_id = %s
+            ORDER BY lp.list_payroll_id
+        """, (campaign_id,))
+
+        payrolls = cursor.fetchall()
+        cursor.close()
+        conn.close()
+
+        result = []
+        for row in payrolls:
+            result.append({
+                "list_payroll_id": row[0],
+                "employee_id": row[1],
+                "employee_name": row[2],
+                "nik": row[3],
+                "email": row[4],
+                "thp": float(row[5]) if row[5] else 0,
+                "send_status": row[6],
+                "send_at": row[7].isoformat() if row[7] else None
+            })
+
+        return result
+
+    except Exception as e:
+        import traceback
+        print(f"Error getting payroll list: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+class PayrollEmailPreviewRequest(BaseModel):
+    list_payroll_id: int
+
+@app.post("/api/payroll-email-preview")
+async def payroll_email_preview(request: PayrollEmailPreviewRequest):
+    """Preview email for a payroll"""
+    try:
+        email_data = get_payroll_email_body(request.list_payroll_id)
+
+        if not email_data:
+            return JSONResponse(status_code=404, content={"error": "Payroll not found"})
+
+        # Get employee email
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT lc.email
+            FROM contract_pkwt.list_payroll lp
+            LEFT JOIN contract_pkwt.list_contract lc ON lp.nik = lc.nik AND lc.contract_id > 137
+            WHERE lp.list_payroll_id = %s
+        """, (request.list_payroll_id,))
+
+        result = cursor.fetchone()
+        cursor.close()
+        conn.close()
+
+        recipient = result[0] if result and result[0] else "N/A"
+
+        return {
+            "email_subject": email_data["subject"],
+            "email_body": email_data["html"],
+            "recipient": recipient
+        }
+
+    except Exception as e:
+        import traceback
+        print(f"Error generating payroll email preview: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+class SendPayrollEmailRequest(BaseModel):
+    list_payroll_id: int
+    test_mode: bool = False
+
+@app.post("/api/send-payroll-email")
+async def send_payroll_email(request: SendPayrollEmailRequest):
+    """Send payroll email with PDF attachment"""
+    try:
+        # Get employee email and payroll data
+        conn = get_db_connection()
+        cursor = conn.cursor()
+
+        cursor.execute("""
+            SELECT lc.email, lp.employee_name
+            FROM contract_pkwt.list_payroll lp
+            LEFT JOIN contract_pkwt.list_contract lc ON lp.nik = lc.nik AND lc.contract_id > 137
+            WHERE lp.list_payroll_id = %s
+        """, (request.list_payroll_id,))
+
+        result = cursor.fetchone()
+
+        if not result or not result[0]:
+            cursor.close()
+            conn.close()
+            return JSONResponse(status_code=404, content={"error": "Employee email not found"})
+
+        employee_email = result[0]
+        employee_name = result[1]
+
+        # HARDCODED TO felliayp@gmail.com FOR SAFETY - DO NOT REMOVE UNTIL CONFIRMED WORKING
+        actual_recipient = employee_email
+        employee_email = 'felliayp@gmail.com'
+        print(f"HARDCODED SAFETY: Email for {actual_recipient} will be sent to felliayp@gmail.com")
+
+        # Get email content
+        email_data = get_payroll_email_body(request.list_payroll_id)
+
+        if not email_data:
+            cursor.close()
+            conn.close()
+            return JSONResponse(status_code=404, content={"error": "Payroll not found"})
+
+        # Get PDF from payroll_status
+        cursor.execute("""
+            SELECT pdf_data
+            FROM contract_pkwt.payroll_status
+            WHERE list_payroll_id = %s
+        """, (request.list_payroll_id,))
+
+        pdf_result = cursor.fetchone()
+
+        if not pdf_result or not pdf_result[0]:
+            cursor.close()
+            conn.close()
+            return JSONResponse(status_code=404, content={"error": "PDF not found for this payroll"})
+
+        # Convert PDF bytea to base64 for Postmark
+        pdf_data = bytes(pdf_result[0])
+        pdf_base64 = base64.b64encode(pdf_data).decode('utf-8')
+
+        cursor.close()
+        conn.close()
+
+        # Prepare subject with test prefix if needed
+        subject = email_data["subject"]
+        if request.test_mode:
+            subject = f"[TEST] {subject}"
+
+        # Send email via Postmark with attachment
+        postmark_response = requests.post(
+            'https://api.postmarkapp.com/email',
+            headers={
+                'Accept': 'application/json',
+                'Content-Type': 'application/json',
+                'X-Postmark-Server-Token': 'e3e7715d-2a61-4187-b79e-6c27733c9cda'
+            },
+            json={
+                'From': 'hr@jmaxindo.id',
+                'To': employee_email,
+                'Subject': subject,
+                'HtmlBody': email_data["html"],
+                'TextBody': email_data["text"],
+                'MessageStream': 'outbound',
+                'Attachments': [
+                    {
+                        'Name': f'Payslip_{employee_name}.pdf',
+                        'Content': pdf_base64,
+                        'ContentType': 'application/pdf'
+                    }
+                ]
+            }
+        )
+
+        if postmark_response.status_code not in [200, 201]:
+            raise Exception(f"Postmark API error: {postmark_response.text}")
+
+        # Update send_status to True (only if not test mode)
+        if not request.test_mode:
+            conn = get_db_connection()
+            cursor = conn.cursor()
+
+            cursor.execute("""
+                UPDATE contract_pkwt.payroll_status
+                SET send_status = TRUE, send_at = CURRENT_TIMESTAMP
+                WHERE list_payroll_id = %s
+            """, (request.list_payroll_id,))
+
+            conn.commit()
+            cursor.close()
+            conn.close()
+
+        return {
+            "message": "Payroll email sent successfully!",
+            "list_payroll_id": request.list_payroll_id,
+            "test_mode": request.test_mode,
+            "recipient": employee_email
+        }
+
+    except Exception as e:
+        import traceback
+        print(f"Error sending payroll email: {str(e)}")
+        print(f"Traceback: {traceback.format_exc()}")
+        return JSONResponse(status_code=500, content={"error": str(e)})
+
+
+class BulkSendPayrollEmailRequest(BaseModel):
+    list_payroll_ids: List[int]
+    test_mode: bool = False
+    campaign_id: int = None
+
+@app.post("/api/bulk-send-payroll-email")
+async def bulk_send_payroll_email(request: BulkSendPayrollEmailRequest):
+    """Send multiple payroll emails with test mode support"""
+    try:
+        success = []
+        failed = []
+
+        for list_payroll_id in request.list_payroll_ids:
+            try:
+                # Get employee email and payroll data
+                conn = get_db_connection()
+                cursor = conn.cursor()
+
+                cursor.execute("""
+                    SELECT lc.email, lp.employee_name
+                    FROM contract_pkwt.list_payroll lp
+                    LEFT JOIN contract_pkwt.list_contract lc ON lp.nik = lc.nik AND lc.contract_id > 137
+                    WHERE lp.list_payroll_id = %s
+                """, (list_payroll_id,))
+
+                result = cursor.fetchone()
+
+                if not result or not result[0]:
+                    cursor.close()
+                    conn.close()
+                    failed.append({
+                        "list_payroll_id": list_payroll_id,
+                        "error": "Employee email not found"
+                    })
+                    continue
+
+                employee_email = result[0]
+                employee_name = result[1]
+
+                # HARDCODED TO felliayp@gmail.com FOR SAFETY - DO NOT REMOVE UNTIL CONFIRMED WORKING
+                actual_recipient = employee_email
+                employee_email = 'felliayp@gmail.com'
+                print(f"HARDCODED SAFETY: Email for {actual_recipient} will be sent to felliayp@gmail.com")
+
+                # Get email content
+                email_data = get_payroll_email_body(list_payroll_id)
+
+                if not email_data:
+                    cursor.close()
+                    conn.close()
+                    failed.append({
+                        "list_payroll_id": list_payroll_id,
+                        "error": "Payroll not found"
+                    })
+                    continue
+
+                # Get PDF from payroll_status
+                cursor.execute("""
+                    SELECT pdf_data
+                    FROM contract_pkwt.payroll_status
+                    WHERE list_payroll_id = %s
+                """, (list_payroll_id,))
+
+                pdf_result = cursor.fetchone()
+
+                if not pdf_result or not pdf_result[0]:
+                    cursor.close()
+                    conn.close()
+                    failed.append({
+                        "list_payroll_id": list_payroll_id,
+                        "error": "PDF not found"
+                    })
+                    continue
+
+                # Convert PDF bytea to base64 for Postmark
+                pdf_data = bytes(pdf_result[0])
+                pdf_base64 = base64.b64encode(pdf_data).decode('utf-8')
+
+                cursor.close()
+                conn.close()
+
+                # Prepare subject with test prefix if needed
+                subject = email_data["subject"]
+                if request.test_mode:
+                    subject = f"[TEST] {subject}"
+
+                # Send email via Postmark with attachment
+                postmark_response = requests.post(
+                    'https://api.postmarkapp.com/email',
+                    headers={
+                        'Accept': 'application/json',
+                        'Content-Type': 'application/json',
+                        'X-Postmark-Server-Token': 'e3e7715d-2a61-4187-b79e-6c27733c9cda'
+                    },
+                    json={
+                        'From': 'hr@jmaxindo.id',
+                        'To': employee_email,
+                        'Subject': subject,
+                        'HtmlBody': email_data["html"],
+                        'TextBody': email_data["text"],
+                        'MessageStream': 'outbound',
+                        'Attachments': [
+                            {
+                                'Name': f'Payslip_{employee_name}.pdf',
+                                'Content': pdf_base64,
+                                'ContentType': 'application/pdf'
+                            }
+                        ]
+                    }
+                )
+
+                if postmark_response.status_code not in [200, 201]:
+                    error_msg = f"Failed to send email: {postmark_response.text}"
+                    failed.append({'list_payroll_id': list_payroll_id, 'error': error_msg})
+                    continue
+
+                # Update send_status to True (only if not test mode)
+                if not request.test_mode:
+                    conn = get_db_connection()
+                    cursor = conn.cursor()
+
+                    cursor.execute("""
+                        UPDATE contract_pkwt.payroll_status
+                        SET send_status = TRUE, send_at = CURRENT_TIMESTAMP
+                        WHERE list_payroll_id = %s
+                    """, (list_payroll_id,))
+
+                    conn.commit()
+                    cursor.close()
+                    conn.close()
+
+                success.append(list_payroll_id)
+
+            except Exception as e:
+                failed.append({
+                    "list_payroll_id": list_payroll_id,
+                    "error": str(e)
+                })
+
+        return {
+            "success": success,
+            "failed": failed,
+            "total": len(request.list_payroll_ids),
+            "success_count": len(success),
+            "failed_count": len(failed),
+            "test_mode": request.test_mode
+        }
+
+    except Exception as e:
+        import traceback
+        print(f"Error in bulk send payroll email: {str(e)}")
         print(f"Traceback: {traceback.format_exc()}")
         return JSONResponse(status_code=500, content={"error": str(e)})
 

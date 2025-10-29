@@ -24,9 +24,17 @@ function initializePayrollManager() {
 
 // Event Listeners Setup
 function setupEventListeners() {
-    // Search input
+    // Search input with autocomplete
     const searchInput = document.getElementById('search-company');
-    searchInput.addEventListener('input', handleFilterChange);
+    searchInput.addEventListener('input', handleCompanySearch);
+    searchInput.addEventListener('focus', showCompanySuggestions);
+
+    // Close suggestions when clicking outside
+    document.addEventListener('click', function(e) {
+        if (!e.target.closest('#search-company') && !e.target.closest('#company-suggestions')) {
+            hideCompanySuggestions();
+        }
+    });
 
     // Status filter
     const statusFilter = document.getElementById('filter-status');
@@ -429,6 +437,86 @@ function showError(message) {
             </button>
         </div>
     `;
+}
+
+// Company Search Autocomplete
+function handleCompanySearch(e) {
+    const searchTerm = e.target.value.trim();
+
+    if (searchTerm.length === 0) {
+        hideCompanySuggestions();
+        handleFilterChange();
+        return;
+    }
+
+    // Get unique company names from all payrolls
+    const companies = [...new Set(allPayrolls
+        .map(p => p.company)
+        .filter(c => c && c.toLowerCase().includes(searchTerm.toLowerCase()))
+    )].sort();
+
+    displayCompanySuggestions(companies, searchTerm);
+    handleFilterChange();
+}
+
+function showCompanySuggestions() {
+    const searchInput = document.getElementById('search-company');
+    const searchTerm = searchInput.value.trim();
+
+    if (searchTerm.length > 0) {
+        const companies = [...new Set(allPayrolls
+            .map(p => p.company)
+            .filter(c => c && c.toLowerCase().includes(searchTerm.toLowerCase()))
+        )].sort();
+        displayCompanySuggestions(companies, searchTerm);
+    }
+}
+
+function displayCompanySuggestions(companies, searchTerm) {
+    const suggestionsDiv = document.getElementById('company-suggestions');
+
+    if (companies.length === 0) {
+        suggestionsDiv.innerHTML = '<div class="company-suggestion-empty">No companies found</div>';
+        suggestionsDiv.classList.add('active');
+        return;
+    }
+
+    const maxSuggestions = 8;
+    const limitedCompanies = companies.slice(0, maxSuggestions);
+
+    suggestionsDiv.innerHTML = limitedCompanies.map(company => {
+        const highlightedName = highlightMatch(company, searchTerm);
+        return `
+            <div class="company-suggestion-item" data-company="${escapeHtml(company)}">
+                ${highlightedName}
+            </div>
+        `;
+    }).join('');
+
+    // Add click handlers
+    suggestionsDiv.querySelectorAll('.company-suggestion-item').forEach(item => {
+        item.addEventListener('click', function() {
+            const company = this.getAttribute('data-company');
+            document.getElementById('search-company').value = company;
+            hideCompanySuggestions();
+            handleFilterChange();
+        });
+    });
+
+    suggestionsDiv.classList.add('active');
+}
+
+function highlightMatch(text, searchTerm) {
+    if (!searchTerm) return escapeHtml(text);
+
+    const regex = new RegExp(`(${escapeHtml(searchTerm)})`, 'gi');
+    return escapeHtml(text).replace(regex, '<strong>$1</strong>');
+}
+
+function hideCompanySuggestions() {
+    const suggestionsDiv = document.getElementById('company-suggestions');
+    suggestionsDiv.classList.remove('active');
+    suggestionsDiv.innerHTML = '';
 }
 
 // Logout function

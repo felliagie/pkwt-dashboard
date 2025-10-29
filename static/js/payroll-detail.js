@@ -30,7 +30,7 @@ async function loadCampaignInfo() {
         campaignInfo = await response.json();
 
         // Update page title
-        document.getElementById('payroll-title').textContent = `💰 ${campaignInfo.company}`;
+        document.getElementById('payroll-title').textContent = `${campaignInfo.company}`;
 
         // Format dates
         const sendDate = new Date(campaignInfo.send_at);

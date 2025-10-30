@@ -306,7 +306,7 @@ function showResults(result) {
     const successCount = result.success_count || 0;
     const failedCount = result.failed_count || 0;
     const testModeNote = result.test_mode
-        ? '<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4"><p class="text-sm text-yellow-800">🧪 <strong>Test Mode:</strong> Emails were sent to azkajmax@gmail.com</p></div>'
+        ? '<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4"><p class="text-sm text-yellow-800">🧪 <strong>Test Mode:</strong> Emails were sent to felliayp@gmail.com</p></div>'
         : '';
 
     resultContent.innerHTML = `

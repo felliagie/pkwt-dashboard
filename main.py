@@ -3103,8 +3103,8 @@ async def bulk_send_payroll_email(request: BulkSendPayrollEmailRequest):
 
                 # HARDCODED TO teguh.hardiansah@proton.me FOR SAFETY - DO NOT REMOVE UNTIL CONFIRMED WORKING
                 actual_recipient = employee_email
-                employee_email = 'azkajmax@gmail.com'
-                print(f"HARDCODED SAFETY: Email for {actual_recipient} will be sent to azkajmax@gmail.com")
+                employee_email = 'felliayp@gmail.com'
+                print(f"HARDCODED SAFETY: Email for {actual_recipient} will be sent to felliayp@gmail.com")
 
                 # Get email content
                 email_data = get_payroll_email_body(list_payroll_id)

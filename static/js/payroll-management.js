@@ -110,6 +110,7 @@ fileInput.addEventListener('change', (e) => {
     if (file) {
         fileNameDisplay.textContent = `Selected: ${file.name}`;
         fileNameDisplay.classList.remove('hidden');
+        document.getElementById('upload-btn').disabled = false;
     }
 });
 
@@ -132,6 +133,7 @@ fileUploadContainer.addEventListener('drop', (e) => {
         fileInput.files = files;
         fileNameDisplay.textContent = `Selected: ${files[0].name}`;
         fileNameDisplay.classList.remove('hidden');
+        document.getElementById('upload-btn').disabled = false;
     }
 });
 

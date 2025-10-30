@@ -28,41 +28,108 @@
         body {
             font-family: 'Poppins', sans-serif;
         }
+
+        @keyframes slideUp {
+            from {
+                opacity: 0;
+                transform: translateY(30px);
+            }
+            to {
+                opacity: 1;
+                transform: translateY(0);
+            }
+        }
+
+        @keyframes fadeIn {
+            from {
+                opacity: 0;
+            }
+            to {
+                opacity: 1;
+            }
+        }
+
+        .animate-fade-in {
+            animation: fadeIn 0.8s ease-out;
+        }
+
+        /* Floating animation for logo */
+        @keyframes float {
+            0%, 100% {
+                transform: translateY(0px);
+            }
+            50% {
+                transform: translateY(-10px);
+            }
+        }
+
+        .logo-container {
+            animation: float 3s ease-in-out infinite;
+        }
+
+        /* Shimmer effect */
+        @keyframes shimmer {
+            0% {
+                background-position: -1000px 0;
+            }
+            100% {
+                background-position: 1000px 0;
+            }
+        }
+
+        .shimmer {
+            background: linear-gradient(90deg, transparent, rgba(255, 255, 255, 0.3), transparent);
+            background-size: 1000px 100%;
+            animation: shimmer 3s infinite;
+        }
     </style>
 </head>
-<body class="bg-gray-50 min-h-screen flex items-center justify-center">
-    <div class="w-full max-w-md">
+<body class="min-h-screen flex items-center justify-center relative overflow-hidden">
+    <!-- Animated Background -->
+    <div class="absolute inset-0 bg-gradient-to-br from-primary via-primary-dark to-primary-light">
+        <!-- Animated circles -->
+        <div class="absolute top-0 left-0 w-96 h-96 bg-white opacity-10 rounded-full blur-3xl animate-pulse" style="animation-duration: 4s;"></div>
+        <div class="absolute bottom-0 right-0 w-96 h-96 bg-white opacity-10 rounded-full blur-3xl animate-pulse" style="animation-duration: 6s; animation-delay: 1s;"></div>
+        <div class="absolute top-1/2 left-1/2 transform -translate-x-1/2 -translate-y-1/2 w-64 h-64 bg-white opacity-5 rounded-full blur-2xl animate-pulse" style="animation-duration: 5s; animation-delay: 2s;"></div>
+    </div>
+
+    <div class="w-full max-w-md relative z-10 px-4">
         <!-- Logo/Header -->
-        <div class="text-center mb-8">
-            <h1 class="text-4xl font-bold text-gray-900 mb-2">JMax PKWT</h1>
-            <p class="text-sm font-light text-gray-600">Sign in to your account</p>
+        <div class="text-center mb-8 animate-fade-in">
+            <div class="mb-6 flex justify-center">
+                <div class="bg-primary rounded-2xl p-4 shadow-2xl transform hover:scale-110 transition-all duration-300">
+                    <img src="/static/images/top-logo.png" alt="JMAX Indonesia" class="h-16 w-auto">
+                </div>
+            </div>
+            <h1 class="text-4xl font-bold text-white mb-2 drop-shadow-lg tracking-tight">PKWT Dashboard</h1>
+            <p class="text-sm font-light text-blue-100 tracking-wide">Sign in to your account</p>
         </div>
 
         <!-- Login Card -->
-        <div class="bg-white rounded-lg p-8 border border-gray-200 transition-all duration-300 hover:shadow-lg" style="box-shadow: 0 4px 6px -1px rgba(0, 0, 0, 0.1), 0 2px 4px -1px rgba(0, 0, 0, 0.06);">
+        <div class="bg-white/95 backdrop-blur-sm rounded-2xl p-8 shadow-2xl transform hover:shadow-3xl transition-all duration-300" style="animation: slideUp 0.6s ease-out;">
             <form id="login-form" class="space-y-6">
                 <!-- Email Input -->
                 <div>
-                    <label for="email" class="block text-sm font-medium text-gray-700 mb-1.5">Email Address</label>
+                    <label for="email" class="block text-sm font-semibold text-gray-700 mb-1.5">Email Address</label>
                     <input
                         type="email"
                         id="email"
                         name="email"
                         required
-                        class="w-full px-4 py-2.5 border border-gray-300 rounded-md font-light focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg font-light focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 hover:border-gray-300"
                         placeholder="you@example.com"
                     >
                 </div>
 
                 <!-- Password Input -->
                 <div>
-                    <label for="password" class="block text-sm font-medium text-gray-700 mb-1.5">Password</label>
+                    <label for="password" class="block text-sm font-semibold text-gray-700 mb-1.5">Password</label>
                     <input
                         type="password"
                         id="password"
                         name="password"
                         required
-                        class="w-full px-4 py-2.5 border border-gray-300 rounded-md font-light focus:outline-none focus:ring-2 focus:ring-primary focus:border-transparent transition-all duration-200"
+                        class="w-full px-4 py-3 border-2 border-gray-200 rounded-lg font-light focus:outline-none focus:ring-2 focus:ring-primary focus:border-primary transition-all duration-200 hover:border-gray-300"
                         placeholder="Enter your password"
                     >
                 </div>
@@ -73,9 +140,9 @@
                         type="checkbox"
                         id="remember"
                         name="remember"
-                        class="w-5 h-5 text-primary border-gray-300 rounded focus:ring-primary focus:ring-2 transition-all duration-200 cursor-pointer"
+                        class="w-5 h-5 text-primary border-gray-300 rounded focus:ring-primary focus:ring-2 transition-all duration-200 cursor-pointer hover:border-primary"
                     >
-                    <label for="remember" class="ml-3 text-sm font-light text-gray-700 cursor-pointer">Remember me for 7 days</label>
+                    <label for="remember" class="ml-3 text-sm font-medium text-gray-700 cursor-pointer hover:text-primary transition-colors duration-200">Remember me for 7 days</label>
                 </div>
 
                 <!-- Error Message -->
@@ -86,7 +153,7 @@
                 <!-- Login Button -->
                 <button
                     type="submit"
-                    class="w-full px-6 py-2.5 bg-primary text-white font-medium rounded-md transition-all duration-200 hover:bg-primary-dark hover:shadow-md active:scale-95"
+                    class="w-full px-6 py-3.5 bg-gradient-to-r from-primary to-primary-light text-white font-semibold rounded-lg transition-all duration-300 hover:from-primary-dark hover:to-primary hover:shadow-xl hover:scale-105 active:scale-95 transform"
                 >
                     Sign In
                 </button>
@@ -94,8 +161,8 @@
         </div>
 
         <!-- Footer -->
-        <div class="text-center mt-6">
-            <p class="text-sm font-light text-gray-600">JMax PKWT Dashboard &copy; 2025</p>
+        <div class="text-center mt-8 animate-fade-in" style="animation-delay: 0.3s;">
+            <p class="text-sm font-light text-white drop-shadow-md">JMax PKWT Dashboard &copy; 2025</p>
         </div>
     </div>
 

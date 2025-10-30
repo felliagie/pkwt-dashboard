@@ -274,7 +274,7 @@ async function previewPayrollSlip(index) {
             <!-- Header Section -->
             <div class="border-b-2 border-gray-200 pb-3 mb-3">
                 <div class="flex items-start justify-start">
-                    <img src="/static/images/top-logo.png" alt="JMax Indonesia Logo" class="h-16 w-auto">
+                    <img src="/static/images/payroll-top-logo.png" alt="JMax Indonesia Logo" class="h-16 w-auto">
                 </div>
             </div>
 
@@ -431,8 +431,8 @@ async function previewPayrollSlip(index) {
             <div class="text-center text-xs text-gray-500 border-t border-gray-200 pt-4">
                 <p class="font-semibold">PT JMAX INDONESIA</p>
                 <p class="leading-relaxed mt-1">
-                    Kantorkuu Office Citywalk Sudirman, Jl. K.H. Mas Mansyur No.121 Level 5, RT.10/RW.11,<br>
-                    Karet Tengsin, Kecamatan Tanah Abang, Jakarta Pusat, 10220
+                    CEO Suite Jakarta, Sahid Sudirman Center 56th Floor, <br>
+                    Jl. Jend. Sudirman No. 86, Jakarta, 10220, Indonesia
                 </p>
                 <p class="mt-1">e-mail: info@jmaxindo.com | URL: www.jmaxindonesia.com</p>
             </div>

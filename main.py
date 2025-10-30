@@ -525,7 +525,7 @@ def generate_payroll_pdfs_background(campaign_id: int):
                 print(f"Error converting image {image_path}: {e}")
                 return ''
 
-        html_template_base = html_template_base.replace('src="/static/images/top-logo.png"', f'src="{image_to_base64("top-logo.png")}"')
+        html_template_base = html_template_base.replace('src="/static/images/payroll-top-logo.png"', f'src="{image_to_base64("payroll-top-logo.png")}"')
         html_template_base = html_template_base.replace('src="/static/images/sign_logo.png"', f'src="{image_to_base64("sign_logo.png")}"')
         html_template_base = html_template_base.replace('src="/static/images/sign.png"', f'src="{image_to_base64("sign.png")}"')
 
@@ -535,6 +535,13 @@ def generate_payroll_pdfs_background(campaign_id: int):
                 return '-'
             rounded = round(float(value))
             return 'Rp ' + '{:,}'.format(rounded).replace(',', '.')
+
+        def format_currency_negative(value):
+            """Format currency with minus sign on the left of 'Rp' for deductions"""
+            if value is None or value == 0 or value == '0':
+                return '-'
+            rounded = round(abs(float(value)))  # Use absolute value
+            return '- Rp ' + '{:,}'.format(rounded).replace(',', '.')
 
         def display_value(value):
             if value is None or value == '':
@@ -604,7 +611,7 @@ def generate_payroll_pdfs_background(campaign_id: int):
                     'BRI (043401014645502)': bank_display,
                     'Rp 3.617.000': format_currency(employee.get('basic_pay')),
                     'Rp 2.100.000': format_currency(employee.get('incentive')),
-                    'Rp -602.833': format_currency(employee.get('potongan')),
+                    '- Rp 602.833': format_currency_negative(employee.get('potongan')),
                     'Rp 5.114.167': format_currency(employee.get('total_salary')),
                     'Rp 72.340': format_currency(employee.get('jht_2_percent_deduction')),
                     'Rp 36.170': format_currency(employee.get('jp_1_percent_deduction')),

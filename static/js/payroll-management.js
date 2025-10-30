@@ -347,7 +347,7 @@ async function previewPayrollSlip(index) {
                                 </tr>
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-4 py-2 text-gray-700">Potongan Absensi</td>
-                                    <td class="px-4 py-2 text-right ${employee.potongan ? 'text-gray-900 font-medium' : 'text-gray-400'}">${employee.potongan ? '-' + formatCurrency(employee.potongan) : '-'}</td>
+                                    <td class="px-4 py-2 text-right ${employee.potongan ? 'text-gray-900 font-medium' : 'text-gray-400'}">${employee.potongan ? '- Rp ' + formatNumber(employee.potongan) : '-'}</td>
                                 </tr>
                                 <tr class="hover:bg-gray-50">
                                     <td class="px-4 py-2 text-gray-700">Tunjangan Pajak</td>

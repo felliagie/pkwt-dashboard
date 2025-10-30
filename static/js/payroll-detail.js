@@ -224,19 +224,12 @@ function updateSelectedRecipients() {
 let pendingSend = null;
 
 function showConfirmation(payrollIds, mode) {
-    const testMode = document.getElementById('test-mode-checkbox').checked;
     const count = payrollIds.length;
 
-    pendingSend = { payrollIds, mode, testMode };
+    pendingSend = { payrollIds, mode };
 
     document.getElementById('confirm-message').textContent =
         `Are you sure you want to send ${count} payroll email${count > 1 ? 's' : ''}?`;
-
-    if (testMode) {
-        document.getElementById('test-mode-warning').classList.remove('hidden');
-    } else {
-        document.getElementById('test-mode-warning').classList.add('hidden');
-    }
 
     document.getElementById('send-modal').classList.add('hidden');
     document.getElementById('confirm-modal').classList.remove('hidden');
@@ -252,7 +245,7 @@ function closeConfirmModal() {
 async function executeSend() {
     if (!pendingSend) return;
 
-    const { payrollIds, testMode } = pendingSend;
+    const { payrollIds } = pendingSend;
 
     // Close confirm modal
     document.getElementById('confirm-modal').classList.add('hidden');
@@ -270,7 +263,7 @@ async function executeSend() {
             },
             body: JSON.stringify({
                 list_payroll_ids: payrollIds,
-                test_mode: testMode,
+                test_mode: false,
                 campaign_id: parseInt(campaignId)
             })
         });
@@ -284,10 +277,8 @@ async function executeSend() {
         // Show results
         showResults(result);
 
-        // Reload payroll list to update status (only if not test mode)
-        if (!testMode) {
-            await loadPayrollList();
-        }
+        // Reload payroll list to update status
+        await loadPayrollList();
 
     } catch (error) {
         console.error('Error sending emails:', error);
@@ -305,12 +296,8 @@ function showResults(result) {
 
     const successCount = result.success_count || 0;
     const failedCount = result.failed_count || 0;
-    const testModeNote = result.test_mode
-        ? '<div class="bg-yellow-50 border border-yellow-200 rounded-lg p-3 mb-4"><p class="text-sm text-yellow-800">🧪 <strong>Test Mode:</strong> Emails were sent to felliayp@gmail.com</p></div>'
-        : '';
 
     resultContent.innerHTML = `
-        ${testModeNote}
         <div class="bg-gray-50 rounded-lg p-4">
             <div class="grid grid-cols-2 gap-4">
                 <div class="text-center">

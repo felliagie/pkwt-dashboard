@@ -616,26 +616,26 @@ def generate_payroll_pdfs_background(campaign_id: int):
                 for old_val, new_val in replacements.items():
                     html_template = html_template.replace(old_val, new_val)
 
-                # Handle nullable fields
+                # Handle nullable fields with unique placeholders
                 ksd_val = employee.get('ksd')
                 ksd_display = format_currency(ksd_val) if ksd_val and ksd_val != 0 else '-'
                 ksd_class = "text-gray-900 font-medium" if ksd_val and ksd_val != 0 else "text-gray-400"
-                html_template = html_template.replace('<td class="px-4 py-2 text-right text-gray-400">-</td>', f'<td class="px-4 py-2 text-right {ksd_class}">{ksd_display}</td>', 1)
+                html_template = html_template.replace('{{KSD_VALUE}}', f'<td class="px-4 py-2 text-right {ksd_class}">{ksd_display}</td>')
 
                 tdk_val = employee.get('tdk')
                 tdk_display = format_currency(tdk_val) if tdk_val and tdk_val != 0 else '-'
                 tdk_class = "text-gray-900 font-medium" if tdk_val and tdk_val != 0 else "text-gray-400"
-                html_template = html_template.replace('<td class="px-4 py-2 text-right text-gray-400">-</td>', f'<td class="px-4 py-2 text-right {tdk_class}">{tdk_display}</td>', 1)
+                html_template = html_template.replace('{{TDK_VALUE}}', f'<td class="px-4 py-2 text-right {tdk_class}">{tdk_display}</td>')
 
                 tunjangan_val = employee.get('tunjangan')
                 tunjangan_display = format_currency(tunjangan_val) if tunjangan_val and tunjangan_val != 0 else '-'
                 tunjangan_class = "text-gray-900 font-medium" if tunjangan_val and tunjangan_val != 0 else "text-gray-400"
-                html_template = html_template.replace('<td class="px-4 py-2 text-right text-gray-400">-</td>', f'<td class="px-4 py-2 text-right {tunjangan_class}">{tunjangan_display}</td>', 1)
+                html_template = html_template.replace('{{TUNJANGAN_VALUE}}', f'<td class="px-4 py-2 text-right {tunjangan_class}">{tunjangan_display}</td>')
 
                 pph21_val = employee.get('pph21')
                 pph21_display = format_currency(pph21_val) if pph21_val and pph21_val != 0 else '-'
                 pph21_class = "text-gray-900 font-medium" if pph21_val and pph21_val != 0 else "text-gray-400"
-                html_template = html_template.replace('<td class="px-4 py-2 text-right text-gray-400">-</td>', f'<td class="px-4 py-2 text-right {pph21_class}">{pph21_display}</td>', 1)
+                html_template = html_template.replace('{{PPH21_VALUE}}', f'<td class="px-4 py-2 text-right {pph21_class}">{pph21_display}</td>')
 
                 bpjs_kesehatan_val = employee.get('bpjs_kesehatan_1_percent_deduction')
                 html_template = html_template.replace('Rp 36.170', format_currency(bpjs_kesehatan_val), 1)
@@ -3096,8 +3096,8 @@ async def bulk_send_payroll_email(request: BulkSendPayrollEmailRequest):
 
                 # HARDCODED TO teguh.hardiansah@proton.me FOR SAFETY - DO NOT REMOVE UNTIL CONFIRMED WORKING
                 actual_recipient = employee_email
-                employee_email = 'teguh.hardiansah@proton.me'
-                print(f"HARDCODED SAFETY: Email for {actual_recipient} will be sent to teguh.hardiansah@proton.me")
+                employee_email = 'felliayp@gmail.com'
+                print(f"HARDCODED SAFETY: Email for {actual_recipient} will be sent to felliayp@gmail.com")
 
                 # Get email content
                 email_data = get_payroll_email_body(list_payroll_id)

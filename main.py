@@ -3143,10 +3143,8 @@ async def bulk_send_payroll_email(request: BulkSendPayrollEmailRequest):
                 cursor.close()
                 conn.close()
 
-                # Prepare subject with test prefix if needed
+                # Prepare subject
                 subject = email_data["subject"]
-                if request.test_mode:
-                    subject = f"[TEST] {subject}"
 
                 # Send email via Postmark with attachment
                 postmark_response = requests.post(
